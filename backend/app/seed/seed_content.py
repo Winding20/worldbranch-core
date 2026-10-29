@@ -54,6 +54,18 @@ def has_content(world_key: str) -> bool:
     return content_path(world_key).is_file()
 
 
+def load_geo(world_key: str) -> dict[str, Any]:
+    """地区几何单独放 geo.json（体积大、手改少），没有就返回空。"""
+    path = pack_dir(world_key) / "geo.json"
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ContentError(f"geo.json 不是合法 JSON：{exc.msg}") from exc
+    return data if isinstance(data, dict) else {}
+
+
 def load_content(world_key: str) -> dict[str, Any]:
     path = content_path(world_key)
     if not path.is_file():
@@ -133,6 +145,7 @@ def seed_content(session: Session, world_key: str) -> World:
     session.add(world)
     session.flush()
 
+    geo_map = load_geo(world_key)
     season_sum = sum(SEASON_FACTOR)
     for item in data["regions"]:
         population = int(item.get("population") or 0)
@@ -146,7 +159,7 @@ def seed_content(session: Session, world_key: str) -> World:
                 parent_key=item.get("parent_key"),
                 lat=float(item.get("lat") or 0.0),
                 lon=float(item.get("lon") or 0.0),
-                geo=item.get("geo"),
+                geo=item.get("geo") or geo_map.get(item["key"]),
                 population=population,
                 farmland=item.get("farmland")
                 or round(annual_need * 1.02 / season_sum, 1),
@@ -182,17 +195,40 @@ def seed_content(session: Session, world_key: str) -> World:
 
     for item in data.get("characters") or []:
         payload = dict(item)
+        # born / died 是年份，模型里是字符串；数字串就转成 int 更整齐
+        for field in ("born", "died"):
+            value = payload.get(field)
+            if isinstance(value, str) and value.isdigit():
+                payload[field] = int(value)
         payload.setdefault("office_rank", 5)
         payload.setdefault("office_kind", "civil")
         session.add(Character(world_id=world.id, **payload))
 
     for item in data.get("armies") or []:
-        session.add(Army(world_id=world.id, **item))
+        payload = dict(item)
+        if isinstance(payload.get("raises_at"), str):
+            payload["raises_at"] = _parse_date(payload["raises_at"])
+        session.add(Army(world_id=world.id, **payload))
 
     for item in data.get("events") or []:
         payload = dict(item)
         payload["date"] = _parse_date(payload["date"])
         session.add(HistoricalEvent(world_id=world.id, **payload))
+
+    docs = data.get("knowledge") or []
+    if docs:
+        from ..ai.knowledge import upsert_doc
+
+        for doc in docs:
+            upsert_doc(
+                session,
+                world,
+                title=doc["title"],
+                content=doc["content"],
+                source=doc.get("source") or "",
+                reliability=doc.get("reliability") or "secondary",
+                slug=doc["slug"],
+            )
 
     session.flush()
     return world

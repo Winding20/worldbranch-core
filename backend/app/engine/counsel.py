@@ -87,8 +87,9 @@ def advise(
     *,
     event: HistoricalEvent | None = None,
     limit: int = MAX_ADVICE,
+    player: str = "tang",
 ) -> list[dict[str, Any]]:
-    """为一道决策生成建议。只从在世、属唐廷的人里挑。"""
+    """为一道决策生成建议。只从在世、属玩家派系的人里挑。"""
     options = decision.options or []
     if not options:
         return []
@@ -96,7 +97,7 @@ def advise(
     pool = [
         c
         for c in characters.values()
-        if c.alive and c.faction_key == "tang" and c.role != "emperor"
+        if c.alive and c.faction_key == player and c.role != "emperor"
     ]
     if not pool:
         return []
@@ -144,7 +145,9 @@ def attach_advice(
     characters: dict[str, CharacterState],
     event: HistoricalEvent | None = None,
     armies: dict[str, ArmyState] | None = None,
+    *,
+    player: str = "tang",
 ) -> None:
     """把建议写进决策。没有可用人物时留空，不编造。"""
     del armies
-    decision.advice = advise(decision, characters, event=event)
+    decision.advice = advise(decision, characters, event=event, player=player)

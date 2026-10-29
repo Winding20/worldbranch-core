@@ -1,4 +1,4 @@
-﻿"""忠诚与离心。
+"""忠诚与离心。
 
 唐史后半段的核心机制：**功高震主**。
 
@@ -44,6 +44,10 @@ class LoyaltyChange:
     reason: str
 
 
+DEFAULT_PLAYER = "tang"
+DEFAULT_HOSTILE = "yan"
+
+
 def _power_share(
     character: CharacterState, armies: dict[str, ArmyState], total: float
 ) -> float:
@@ -59,16 +63,19 @@ def monthly_drift(
     characters: dict[str, CharacterState],
     armies: dict[str, ArmyState],
     tang: FactionState | None,
+    *,
+    player: str = "tang",
+    hostile: str = "yan",
 ) -> list[LoyaltyChange]:
     """计算本月忠诚变化。返回发生变化的人。"""
     total_troops = sum(
-        a.troops for a in armies.values() if a.faction_key == "tang" and a.raised
+        a.troops for a in armies.values() if a.faction_key == player and a.raised
     )
     legitimacy = tang.legitimacy if tang else 0.5
 
     changes: list[LoyaltyChange] = []
     for person in characters.values():
-        if not person.alive or person.faction_key != "tang":
+        if not person.alive or person.faction_key != player:
             continue
         if person.role in {"emperor"}:
             continue
@@ -113,11 +120,14 @@ def check_defection(
     branch: Branch,
     characters: dict[str, CharacterState],
     armies: dict[str, ArmyState],
+    *,
+    player: str = "tang",
+    hostile: str = "yan",
 ) -> list[dict[str, Any]]:
     """检查有没有人该叛了。返回叛离记录。"""
     results: list[dict[str, Any]] = []
     for person in characters.values():
-        if not person.alive or person.faction_key != "tang":
+        if not person.alive or person.faction_key != player:
             continue
         if person.loyalty > DEFECT_LOYALTY:
             continue
@@ -133,11 +143,11 @@ def check_defection(
             continue
 
         # 叛归燕军：带走自己的兵
-        person.faction_key = "yan"
+        person.faction_key = hostile
         person.defected = True
         moved = 0
         for army in own_armies:
-            army.faction_key = "yan"
+            army.faction_key = hostile
             moved += army.troops
 
         # 驻地若在其掌控下，一并易手
@@ -146,8 +156,8 @@ def check_defection(
             region = session.query(RegionState).filter_by(
                 branch_id=branch.id, region_key=person.location_region_key
             ).one_or_none()
-            if region is not None and region.faction_key == "tang":
-                region.faction_key = "yan"
+            if region is not None and region.faction_key == player:
+                region.faction_key = hostile
                 lost_regions.append(region.name)
 
         results.append(
@@ -164,16 +174,19 @@ def check_defection(
 
 
 def loyalty_overview(
-    characters: dict[str, CharacterState], armies: dict[str, ArmyState]
+    characters: dict[str, CharacterState],
+    armies: dict[str, ArmyState],
+    *,
+    player: str = "tang",
 ) -> list[dict[str, Any]]:
     """给界面用的忠诚一览：谁在带兵、兵有多少、忠不忠。"""
-    total = sum(a.troops for a in armies.values() if a.faction_key == "tang" and a.raised)
+    total = sum(a.troops for a in armies.values() if a.faction_key == player and a.raised)
     rows = []
     for person in characters.values():
         if person.role == "emperor":
             continue
         # 燕方人物不进唐廷的忠诚一览；但从唐廷叛出的要留着，好让人看见
-        if person.faction_key != "tang" and not person.defected:
+        if person.faction_key != player and not person.defected:
             continue
         troops = sum(
             a.troops

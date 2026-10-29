@@ -217,7 +217,13 @@ def evaluate_rubric(session: Session, branch: Branch, rubric: dict[str, Any]) ->
     for name, spec in (rubric.get("facts") or {}).items():
         facts[name] = _fact(ctx, spec)
 
-    tang = ctx.factions.get("tang")
+    # 玩家派系由 rubric 里的指标决定；取所有指标里出现的第一个派系
+    player_key = rubric.get("player_faction") or next(
+        (m.get("faction") for m in rubric.get("metrics") or [] if m.get("faction")),
+        None,
+    )
+    tang = ctx.factions.get(player_key) if player_key else None
+
     return {
         "reached": True,
         "date": format_date(branch.current_date),

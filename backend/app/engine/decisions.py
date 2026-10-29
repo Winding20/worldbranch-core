@@ -14,6 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..models import (
+    World,
     ArmyState,
     Branch,
     CharacterState,
@@ -30,6 +31,19 @@ from .military import candidates_for_command
 
 #: 同一类决策在这段时间内不重复提出（月）
 COOLDOWN_TICKS = 12
+
+
+def _player_and_hostile(world_key: str | None) -> tuple[str, str]:
+    """玩家/敌对派系由世界包决定；没有包就回退 tang/yan。"""
+    from ..worldpack import PackError, load_world, pack_exists
+
+    if not world_key or not pack_exists(world_key):
+        return "tang", "yan"
+    try:
+        meta = load_world(world_key)
+    except PackError:
+        return "tang", "yan"
+    return meta.get("player_faction") or "tang", meta.get("hostile_faction") or "yan"
 
 
 # --------------------------------------------------------------------------- #
@@ -84,9 +98,7 @@ def raise_decisions(
     armies = armies or {}
     rng = rng or random.Random(f"{branch.seed}:{tick}:decisions")
     by_key = {r.region_key: r for r in regions}
-    fanzhen = factions.get("fanzhen")
-    tang = factions.get("tang")
-    allegiance = _get_relation(relations, "fanzhen")
+    # 决策规则本身已迁到世界包；这里只保留内置库可能用到的基础设施
 
     # 1) 藩镇请饷：已迁到世界包 seed/packs/tang_750/decisions.json
     #    （数据驱动路径见 engine/pack_decisions.py）
@@ -106,7 +118,7 @@ def raise_decisions(
     # 决策落库后立刻让朝臣开口：有话说就说，没人可问就留空。
     # 这段收尾以前写在分支末尾，迁移时被一并删掉过——别再去掉它。
     for decision in created:
-        attach_advice(decision, characters, armies)
+        attach_advice(decision, characters, armies, player=player_key)
     return created
 
 
@@ -167,9 +179,13 @@ def resolve_decision(
     #: 实际发生的变化，用于给用户"选完之后到底怎么了"的即时反馈
     applied: list[dict[str, Any]] = []
 
+    player_key, _hostile = _player_and_hostile(
+        session.scalar(select(World.key).where(World.id == branch.world_id))
+    )
     tang = session.scalar(
         select(FactionState).where(
-            FactionState.branch_id == branch.id, FactionState.faction_key == "tang"
+            FactionState.branch_id == branch.id,
+            FactionState.faction_key == player_key,
         )
     )
     if tang is not None:
@@ -387,7 +403,7 @@ def resolve_decision(
         title=f"决策：{decision.title} → {option['label']}",
         summary=option.get("detail") or "",
         region_keys=[],
-        faction_keys=["tang"],
+        faction_keys=[player_key],
         causes=(
             [{"event_id": decision.trigger_event_id, "rel": "caused_by"}]
             if decision.trigger_event_id

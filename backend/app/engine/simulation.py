@@ -222,26 +222,43 @@ class SimulationEngine:
             )
         }
 
+        # 玩家与敌对派系由世界包决定（缺省回退 tang/yan）
+        world_key = self.session.scalar(
+            select(World.key).where(World.id == branch.world_id)
+        )
+        player_key, hostile_key = _player_and_hostile(world_key)
+
         for step in range(months):
             self._tick(branch, regions, factions, step, profile, report, links)
             # 忠诚每月缓变：功高者渐生异志，朝廷威望不振则人心离散
             if characters:
-                loyalty.monthly_drift(characters, armies, factions.get("tang"))
+                loyalty.monthly_drift(
+                    characters,
+                    armies,
+                    factions.get(player_key),
+                    player=player_key,
+                    hostile=hostile_key,
+                )
                 defectors = loyalty.check_defection(
-                    self.session, branch, characters, armies
+                    self.session,
+                    branch,
+                    characters,
+                    armies,
+                    player=player_key,
+                    hostile=hostile_key,
                 )
                 for item in defectors:
                     report.defections.append(item)
                     self._emit(
                         branch, report,
                         kind="defection", scope="nation", severity=5,
-                        title=f"{item['name']}叛归燕军",
+                        title=f"{item['name']}叛离",
                         summary=(
                             f"{item['name']}拥兵 {item['troops']:,}，"
                             f"忠诚已降至 {item['loyalty']:.2f}，遂叛。"
                             + (f" 失{item['regions'][0]}。" if item["regions"] else "")
                         ),
-                        region_keys=[], faction_keys=["tang"],
+                        region_keys=[], faction_keys=[player_key],
                         causes=[{"rule": "defection", "character": item["character_key"]}],
                         metrics={"defection": item}, min_severity=0,
                     )

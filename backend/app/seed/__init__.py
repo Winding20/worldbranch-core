@@ -40,10 +40,11 @@ def seed_world(session: Session, key: str) -> World:
     exists = session.scalar(select(World).where(World.key == key))
     if exists is not None:
         return exists
-    if key in WORLD_SEEDERS:
-        return WORLD_SEEDERS[key](session)
+    # 有 content.json 就以数据为准（Python 播种器退居兜底）
     if has_content(key):
         return seed_content(session, key)
+    if key in WORLD_SEEDERS:
+        return WORLD_SEEDERS[key](session)
     raise LookupError(f"没有找到世界的播种方式：{key}")
 
 #: 各世界的知识库资料
