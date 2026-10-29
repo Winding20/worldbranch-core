@@ -1,0 +1,14 @@
+{
+  "key": "tang_755",
+  "title": "安史之乱",
+  "subtitle": "天宝十四载 · 广德元年",
+  "start_date": "0755-11-01",
+  "horizon_months": 96,
+  "role": "唐廷",
+  "role_brief": "你是唐廷。天下兵马、府库钱粮、藩镇顺逆，都由你决断。",
+  "theme": "crimson-theater",
+  "labels": {
+    "advance_unit": "月",
+    "horizon_label": "广德元年"
+  }
+}

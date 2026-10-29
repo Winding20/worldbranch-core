@@ -1,0 +1,77 @@
+{
+  "_comment": "安史之乱的结局评分。六项指标、权重之和为 1；河北权重最高——这才是这场乱真正的后果。",
+  "horizon_months": 96,
+  "grades": [
+    [85, "中兴", "两京无恙，河北未失，天下犹可为。"],
+    [60, "克复", "叛乱虽平，然师老兵疲、府库空虚，河北已非朝廷所有。"],
+    [42, "苟安", "乱虽止而权已移，河北自此听调不听宣。"],
+    [25, "大乱初定", "烽火暂息，然天下已非旧日之天下。"],
+    [0, "崩坏", "乱事未平，藩镇自立，唐廷号令不出关中。"]
+  ],
+  "metrics": [
+    {
+      "key": "capitals",
+      "label": "两京",
+      "weight": 0.2,
+      "kind": "regions_held",
+      "regions": ["changan", "luoyang"],
+      "faction": "tang",
+      "_why": "两京在谁手里，是这八年最直观的成败"
+    },
+    {
+      "key": "rebellion",
+      "label": "乱平",
+      "weight": 0.2,
+      "kind": "rebellion_status",
+      "faction": "tang",
+      "leader": "shi_chaoyi",
+      "scores": { "over": 100, "leader_gone": 60, "ongoing": 20 },
+      "_why": "叛军是否被平定；首领已死但余部未清，算半平定"
+    },
+    {
+      "key": "treasury",
+      "label": "府库",
+      "weight": 0.12,
+      "kind": "faction_treasury",
+      "faction": "tang",
+      "offset": 500000,
+      "span": 8000000,
+      "_why": "府库空虚到什么程度"
+    },
+    {
+      "key": "legitimacy",
+      "label": "威望",
+      "weight": 0.15,
+      "kind": "faction_field",
+      "faction": "tang",
+      "field": "legitimacy",
+      "_why": "朝廷的号令还管不管用"
+    },
+    {
+      "key": "unrest",
+      "label": "民心",
+      "weight": 0.13,
+      "kind": "max_unrest",
+      "span": 0.7,
+      "invert": true,
+      "_why": "全境民变最高值，越高说明民心越失"
+    },
+    {
+      "key": "hebei",
+      "label": "河北",
+      "weight": 0.2,
+      "kind": "region_control",
+      "regions": ["hebei_plain", "fanyang"],
+      "faction": "tang",
+      "scores": { "held": 100, "autonomous": 40, "lost": 0 },
+      "_why": "朝廷直辖 100，名义归附而藩镇自专 40，仍为叛军所据 0"
+    }
+  ],
+  "facts": {
+    "capitals_held": { "kind": "count_regions_held", "regions": ["changan", "luoyang"], "faction": "tang" },
+    "rebellion_over": { "kind": "no_hostile_regions", "faction": "tang" },
+    "rebel_regions": { "kind": "list_hostile_regions", "faction": "tang" },
+    "autonomous_regions": { "kind": "list_autonomous_regions", "faction": "tang" },
+    "rebel_leader_alive": { "kind": "character_alive", "character": "shi_chaoyi" }
+  }
+}

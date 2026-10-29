@@ -1,4 +1,4 @@
-﻿"""唐朝切片的结局与新增岔路口测试。"""
+"""唐朝切片的结局与新增岔路口测试。"""
 
 from __future__ import annotations
 
@@ -6,7 +6,11 @@ from sqlalchemy import select
 
 from app.engine import SimulationEngine
 from app.engine.decisions import resolve_decision
-from app.engine.end_tang import TANG_HORIZON_MONTHS, evaluate_tang_ending
+from app.engine.end_tang import evaluate_tang_ending
+from app.worldpack import load_rubric
+
+#: 期限来自世界包，不再写死在引擎里
+TANG_HORIZON_MONTHS = load_rubric("tang_755")["horizon_months"]
 from app.models import Decision, RegionState
 from app.services import create_branch, get_world_by_key
 
@@ -78,6 +82,9 @@ def test_following_history_ends_with_hebei_autonomous(db_session):
     assert ending["scores"]["河北"] == 40.0, "河北应为「名义归附而自专」"
     assert ending["metrics"]["autonomous_regions"], "应记录哪些州郡已成藩镇"
     assert ending["grade"] in {"克复", "苟安", "中兴"}
+    # 锁死史实线的分数：这条路线是基准，改了评分规则必须在这里显式改数字
+    assert ending["score"] == 75.4, f"史实线应为 75.4 分，实际 {ending['score']}"
+    assert ending["grade"] == "克复"
 
 
 def test_diverging_improves_capital_score(db_session):
