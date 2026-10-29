@@ -126,6 +126,46 @@ def load_rubric(world_key: str) -> dict[str, Any]:
     return data
 
 
+def load_decisions(world_key: str) -> dict[str, Any]:
+    """读 decisions.json（可选文件）。没有就返回空规则表。"""
+    path = pack_dir(world_key) / "decisions.json"
+    if not path.is_file():
+        return {"rules": []}
+    data = _read_json(path)
+    rules = data.get("rules")
+    if rules is None:
+        return {"rules": []}
+    if not isinstance(rules, list):
+        raise PackError("decisions.json 的 rules 必须是数组")
+
+    # 基础校验：条件与效果的名字必须在词表里（值本身由引擎在运行时判定）
+    from .engine.rules_engine import CONDITIONS, EFFECTS
+
+    for i, rule in enumerate(rules):
+        where = f"rules[{i}]"
+        if not isinstance(rule, dict):
+            raise PackError(f"{where} 必须是对象")
+        for field in ("kind", "options"):
+            if not rule.get(field):
+                raise PackError(f"{where} 缺少字段：{field}")
+        for name in (rule.get("when") or {}):
+            if name not in CONDITIONS:
+                raise PackError(
+                    f"{where} 的条件 '{name}' 不认识。"
+                    f"可用：{', '.join(sorted(CONDITIONS))}"
+                )
+        for j, opt in enumerate(rule["options"]):
+            if not opt.get("label"):
+                raise PackError(f"{where}.options[{j}] 缺少 label")
+            for name in (opt.get("effects") or {}):
+                if name not in EFFECTS:
+                    raise PackError(
+                        f"{where}.options[{j}] 的效果 '{name}' 不认识。"
+                        f"可用：{', '.join(sorted(EFFECTS))}"
+                    )
+    return data
+
+
 @lru_cache(maxsize=32)
 def _load_pack_cached(world_key: str, _mtime: float) -> dict[str, Any]:
     return {
@@ -149,6 +189,7 @@ __all__ = [
     "PackError",
     "KNOWN_METRIC_KINDS",
     "load_pack",
+    "load_decisions",
     "load_rubric",
     "load_world",
     "pack_dir",

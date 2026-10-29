@@ -1,4 +1,4 @@
-﻿"""模拟引擎：按规则推进时间、更新状态、生成事件。
+"""模拟引擎：按规则推进时间、更新状态、生成事件。
 
 引擎只负责「算」，不做任何叙述性生成；AI 分析属于后续层。
 所有随机都来自按 (seed, tick) 派生的独立随机源，保证同一分支可复现。
@@ -15,6 +15,7 @@ from typing import Any, Iterable
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from ..worldpack import pack_exists
 from ..models import (
     ArmyState,
     Branch,
@@ -25,6 +26,7 @@ from ..models import (
     SimEvent,
     Snapshot,
     TradeLink,
+    World,
 )
 from ..utils import format_date
 from . import decisions, history, loyalty, rules
@@ -324,6 +326,33 @@ class SimulationEngine:
             characters=characters,
             armies=armies,
         )
+
+        # 数据驱动的决策：世界包里有 decisions.json 就一并产出。
+        # 两条路并存，方便逐条把内置规则迁移到包里。
+        world_key = self.session.scalar(
+            select(World.key).where(World.id == branch.world_id)
+        )
+        if world_key and pack_exists(world_key):
+            from .pack_decisions import raise_pack_decisions
+            from .rules_engine import State
+
+            state = State(
+                regions=regions,
+                factions=factions,
+                characters=characters,
+                armies=armies,
+                month=branch.tick_index,
+            )
+            raised.extend(
+                raise_pack_decisions(
+                    self.session,
+                    branch,
+                    world_key=world_key,
+                    state=state,
+                    rng=random.Random(f"{branch.seed}:{branch.tick_index}:pack"),
+                )
+            )
+
         report.decisions = [d.to_dict() for d in raised]
         report.relations = [r.snapshot() for r in relations.values()]
 
