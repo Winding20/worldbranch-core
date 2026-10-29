@@ -9,6 +9,7 @@ from sqlalchemy import select
 
 from ..app_factory import get_db
 from ..models import Branch
+from ..worldpack import PackError, load_world, pack_exists
 from ..services import (
     create_branch,
     get_world_by_key,
@@ -20,10 +21,37 @@ from ..services import (
 bp = Blueprint("worlds", __name__, url_prefix="/api/worlds")
 
 
+def _pack_meta(key: str) -> dict:
+    """世界包元信息（标题、时段、角色、期限、主题）。没有包就返回空。"""
+    if not pack_exists(key):
+        return {}
+    try:
+        meta = load_world(key)
+    except PackError:
+        return {}
+    return {
+        "title": meta.get("title"),
+        "subtitle": meta.get("subtitle"),
+        "start_date": meta.get("start_date"),
+        "horizon_months": meta.get("horizon_months"),
+        "role": meta.get("role"),
+        "role_brief": meta.get("role_brief"),
+        "theme": meta.get("theme"),
+        "labels": meta.get("labels") or {},
+        "player_faction": meta.get("player_faction"),
+        "hostile_faction": meta.get("hostile_faction"),
+    }
+
+
 @bp.get("")
 def index():
     with get_db().session() as session:
-        return jsonify([w.to_dict() for w in list_worlds(session)])
+        rows = []
+        for w in list_worlds(session):
+            item = w.to_dict()
+            item["pack"] = _pack_meta(w.key)
+            rows.append(item)
+        return jsonify(rows)
 
 
 @bp.get("/<key>")
@@ -33,6 +61,7 @@ def detail(key: str):
         return jsonify(
             {
                 **world.to_dict(),
+                "pack": _pack_meta(world.key),
                 "regions": [
                     {
                         "key": r.key,

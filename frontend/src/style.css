@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --bg: #0f1419;
   --panel: #161d24;
   --panel-2: #1d262f;
@@ -743,4 +743,14 @@ button:active:not(:disabled) { transform: scale(0.96); }
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
+}
+/* 世界切换：只在有多个世界包时出现 */
+.world-switch {
+  padding: 8px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: rgba(29, 38, 47, 0.9);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
 }

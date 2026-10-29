@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import { api } from "./api.js";
 import MapView from "./components/MapView.vue";
@@ -10,7 +10,13 @@ import DecisionPanel from "./components/DecisionPanel.vue";
 import { isMuted, toggleMuted } from "./sound.js";
 import EndingCard from "./components/EndingCard.vue";
 
-const WORLD = "tang_755";
+//: 当前世界：从地址栏 ?world= 读，缺省 tang_755。
+//: 这样同一个前端可以承载任意世界包，不用改代码。
+const params = new URLSearchParams(window.location.search);
+const WORLD = params.get("world") || "tang_755";
+//: 世界包元信息（标题、角色、期限、主题），由 /api/worlds/<key> 提供
+const worldMeta = ref(null);
+const worldList = ref([]);
 const PRECISIONS = [
   { key: "macro", name: "宏观推演", desc: "国家与地区关系" },
   { key: "standard", name: "标准模拟", desc: "重要地区与势力" },
@@ -72,15 +78,24 @@ const allegiance = computed(
   () => relations.value.find((r) => r.from_key === "fanzhen") || null
 );
 
-//: 这盘棋的终点是广德元年（764），共 99 个月
-const HORIZON_MONTHS = 99;
+//: 世界标题与角色，来自世界包
+const worldTitle = computed(() => worldMeta.value?.pack?.title || worldMeta.value?.name || "");
+const worldRole = computed(
+  () => (scenario.value && scenario.value.role) || worldMeta.value?.pack?.role || ""
+);
+
+//: 这盘棋的终点由世界包决定（horizon_months）；拿不到就退回 99
+const HORIZON_MONTHS = computed(() => {
+  const fromPack = worldMeta.value?.pack?.horizon_months;
+  return Number(fromPack) || 99;
+});
 const progressPct = computed(() => {
   const done = branch.value ? branch.value.tick_index : 0;
-  return Math.min(100, Math.round((done / HORIZON_MONTHS) * 100));
+  return Math.min(100, Math.round((done / HORIZON_MONTHS.value) * 100));
 });
 const monthsLeft = computed(() => {
   const done = branch.value ? branch.value.tick_index : 0;
-  return Math.max(0, HORIZON_MONTHS - done);
+  return Math.max(0, HORIZON_MONTHS.value - done);
 });
 //: 官职的显示名。数字与代码留在数据里，界面只给人读的字。
 const RANK_LABELS = { 1: "一品", 2: "二品", 3: "三品", 4: "四品", 5: "五品" };
@@ -147,7 +162,7 @@ async function ensureBranch() {
   return api.createBranch(WORLD, {
     precision: precision.value,
     seed: 1,
-    name: "唐朝·主时间线",
+    name: `${worldMeta.value?.pack?.title || WORLD}·主时间线`,
   });
 }
 
@@ -191,7 +206,15 @@ async function loadEnding() {
 
 async function boot() {
   try {
-    scenario.value = (await api.world(WORLD)).scenario || null;
+    // 世界清单（供切换）+ 当前世界包元信息
+    try {
+      worldList.value = await api.worlds();
+    } catch (err) {
+      worldList.value = [];
+    }
+    const detail = await api.world(WORLD);
+    worldMeta.value = detail;
+    scenario.value = detail.scenario || null;
     branch.value = await ensureBranch();
     await loadState();
     await loadEvents();
@@ -202,6 +225,13 @@ async function boot() {
   } catch (err) {
     error.value = `初始化失败：${err.message}`;
   }
+}
+
+function switchWorld(key) {
+  if (!key || key === WORLD) return;
+  const url = new URL(window.location.href);
+  url.searchParams.set("world", key);
+  window.location.href = url.toString();
 }
 
 async function advance(months) {
@@ -357,7 +387,7 @@ onMounted(boot);
     <header class="hud">
       <div class="hud-main">
         <span class="hud-date">{{ branch ? branch.current_date : "" }}</span>
-        <span class="hud-role">{{ scenario ? scenario.role : "" }}</span>
+        <span class="hud-role">{{ worldTitle }}<template v-if="worldRole"> · {{ worldRole }}</template></span>
       </div>
       <div class="hud-stats">
         <span v-if="tang">府库 <b>{{ Math.round(tang.treasury).toLocaleString() }}</b></span>
@@ -564,6 +594,17 @@ onMounted(boot);
         >
           {{ muted ? "静音" : "音效" }}
         </button>
+        <select
+          v-if="worldList.length > 1"
+          class="world-switch"
+          :value="WORLD"
+          @change="switchWorld($event.target.value)"
+          title="切换世界"
+        >
+          <option v-for="w in worldList" :key="w.key" :value="w.key">
+            {{ w.pack && w.pack.title ? w.pack.title : w.name }}
+          </option>
+        </select>
         <button class="drawer-toggle" @click="drawerOpen = !drawerOpen">
           {{ drawerOpen ? "收起" : "朝局" }}
           <span v-if="decisions.length" class="count urgent">{{ decisions.length }}</span>

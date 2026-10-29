@@ -1,4 +1,4 @@
-﻿// 无浏览器环境下的渲染冒烟测试。
+// 无浏览器环境下的渲染冒烟测试。
 //
 // 思路：把 Vue 应用打成 IIFE 包（jsdom 不支持 ES module），
 // 在 jsdom 里加载并挂载，注入一个走真实后端接口的 fetch，
@@ -84,6 +84,7 @@ const checks = {
   "出现待决事项面板": body.includes("待决事项"),
   "出现分页标签": body.includes("军事") && body.includes("人物") && body.includes("史实"),
   "顶部 HUD 有日期": Boolean(window.document.querySelector(".hud .hud-date")),
+  "显示世界包标题": /安史之乱|赤壁/.test(body),
   "底部动作条有推进": /1 年/.test(body),
   "有进度条": Boolean(window.document.querySelector(".progress-track")),
   "有抽屉开关": Boolean(window.document.querySelector(".drawer-toggle")),
