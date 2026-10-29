@@ -1,4 +1,4 @@
-# WorldBranch
+# WorldBranch [![CI](https://github.com/Winding20/worldbranch-core/actions/workflows/ci.yml/badge.svg)](https://github.com/Winding20/worldbranch-core/actions/workflows/ci.yml)
 
 **一套做「历史推演器」的模具。** 给定真实的历史起点，玩家替某一方做决定，
 看历史怎么分叉；引擎负责判定前提、结算后果、按规则给结局打分。
