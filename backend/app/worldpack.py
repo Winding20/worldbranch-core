@@ -143,10 +143,20 @@ def load_decisions(world_key: str) -> dict[str, Any]:
 
     path = pack_dir(world_key) / "decisions.json"
     if path.is_file():
-        own = _read_json(path).get("rules") or []
+        data = _read_json(path)
+        # include：引用共享规则文件（相对 PACK_ROOT），避免多个世界复制同一份
+        for rel in data.get("include") or []:
+            inc = PACK_ROOT / rel
+            if not inc.is_file():
+                raise PackError(f"include 的文件不存在：{rel}")
+            rules.extend(_read_json(inc).get("rules") or [])
+        own = data.get("rules") or []
         own_kinds = {r.get("kind") for r in own}
         rules = [r for r in rules if r.get("kind") not in own_kinds]
         rules.extend(own)
+        data = {"rules": rules}
+    else:
+        data = {"rules": rules}
 
     data = {"rules": rules}
     if not isinstance(rules, list):
@@ -159,16 +169,25 @@ def load_decisions(world_key: str) -> dict[str, Any]:
         where = f"rules[{i}]"
         if not isinstance(rule, dict):
             raise PackError(f"{where} 必须是对象")
-        for field in ("kind", "options"):
-            if not rule.get(field):
-                raise PackError(f"{where} 缺少字段：{field}")
+        if not rule.get("kind"):
+            raise PackError(f"{where} 缺少字段：kind")
+        if not (rule.get("options") or rule.get("options_from")):
+            raise PackError(f"{where} 需要 options 或 options_from 之一")
+        if rule.get("options_from"):
+            from .engine.rule_generators import GENERATORS
+
+            if rule["options_from"] not in GENERATORS:
+                raise PackError(
+                    f"{where} 的 options_from '{rule['options_from']}' 不存在。"
+                    f"可用：{', '.join(sorted(GENERATORS))}"
+                )
         for name in (rule.get("when") or {}):
             if name not in CONDITIONS:
                 raise PackError(
                     f"{where} 的条件 '{name}' 不认识。"
                     f"可用：{', '.join(sorted(CONDITIONS))}"
                 )
-        for j, opt in enumerate(rule["options"]):
+        for j, opt in enumerate(rule.get("options") or []):
             if not opt.get("label"):
                 raise PackError(f"{where}.options[{j}] 缺少 label")
             for name in (opt.get("effects") or {}):

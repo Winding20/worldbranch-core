@@ -1,0 +1,5 @@
+{
+  "_comment": "安史之乱世界的决策。藩镇三条来自共享文件；本世界专属的可写在这里覆盖。",
+  "include": ["_shared/tang_warlord.json"],
+  "rules": []
+}

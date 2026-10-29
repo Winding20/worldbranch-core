@@ -27,7 +27,7 @@ from app.worldpack import (  # noqa: E402
 )
 
 #: 模板目录与共享规则目录不参与校验（后者没有 world.json）
-SKIP = {"_template", "_common"}
+SKIP = {"_template", "_common", "_shared"}
 
 
 class Report:

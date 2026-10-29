@@ -1,5 +1,6 @@
 {
   "_comment": "天宝九年沙盘的决策。请饷这条从 engine/decisions.py 迁来，属本世界（fanzhen 派系只存在于这里）。",
+  "include": ["_shared/tang_warlord.json"],
   "rules": [
     {
       "kind": "warlord_supply",

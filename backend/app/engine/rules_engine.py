@@ -36,6 +36,7 @@ class State:
         armies: dict[str, Any] | None = None,
         month: int = 0,
         shocked: set[str] | None = None,
+        relations: dict[str, Any] | None = None,
     ) -> None:
         self.regions = regions
         self.by_key = {r.region_key: r for r in regions}
@@ -45,6 +46,8 @@ class State:
         self.month = month
         #: 本月刚受冲击的地区（缺粮、灾荒），供 region_shocked 条件用
         self.shocked = shocked or set()
+        #: 与各派系的关系（key 与 relation.from_key 一致）
+        self.relations = relations or {}
 
     def worst_unrest(self):
         return max(self.regions, key=lambda r: r.unrest, default=None)
@@ -84,6 +87,23 @@ def _character_alive(state: State, spec: dict[str, Any]) -> bool:
 def _character_loyalty_below(state: State, spec: dict[str, Any]) -> bool:
     who = state.characters.get(spec.get("character", ""))
     return bool(who and who.loyalty < float(spec.get("value", 0.45)))
+
+
+def _relation_below(state: State, spec: dict[str, Any]) -> bool:
+    """与某派系的关系值低于阈值。没有这条关系时视为默认 0.5。"""
+    rel = getattr(state, "relations", {}).get(spec.get("from_key", ""))
+    value = rel.value if rel is not None else float(spec.get("default", 0.5))
+    return value < float(spec.get("value", 0.0))
+
+
+def _region_exists(state: State, spec: dict[str, Any]) -> bool:
+    key = spec.get("region") if isinstance(spec, dict) else spec
+    return key in state.by_key
+
+
+def _treasury_above(state: State, spec: dict[str, Any]) -> bool:
+    fac = state.factions.get(spec.get("faction", ""))
+    return bool(fac and fac.treasury > float(spec.get("amount", 0)))
 
 
 def _chance(state: State, value: float) -> bool:
@@ -129,6 +149,9 @@ CONDITIONS: dict[str, Callable[[State, Any], bool]] = {
     "price_above": _price_above,
     "region_shocked": _region_shocked,
     "any_of": _any_of,
+    "relation_below": _relation_below,
+    "region_exists": _region_exists,
+    "treasury_above": _treasury_above,
 }
 
 
@@ -248,6 +271,14 @@ def _apply_troops(ctx, spec) -> None:
             army.troops = max(0, army.troops + int(delta))
 
 
+def _apply_commander(ctx, spec) -> None:
+    """任命主帅：{军队: 人物}。"""
+    for army_key, person_key in (spec or {}).items():
+        army = ctx["armies"].get(army_key)
+        if army is not None:
+            army.commander_key = person_key
+
+
 def _apply_morale(ctx, spec) -> None:
     for key, delta in (spec or {}).items():
         army = ctx["armies"].get(key)
@@ -280,6 +311,7 @@ EFFECTS: dict[str, Callable[[dict[str, Any], Any], None]] = {
     "troops": _apply_troops,
     "morale": _apply_morale,
     "tax": _apply_tax,
+    "commander": _apply_commander,
 }
 
 

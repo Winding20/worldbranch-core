@@ -1,0 +1,153 @@
+{
+  "_comment": "唐史两个世界（tang_750 / tang_755）共用的藩镇规则。藩镇 key=fanzhen，河北=hebei，陇右=longyou。",
+  "rules": [
+    {
+      "kind": "cut_warlord",
+      "cooldown_months": 12,
+      "when": {
+        "relation_below": { "from_key": "fanzhen", "value": 0.25 },
+        "treasury_above": { "faction": "tang", "amount": 0 }
+      },
+      "focus": { "region": "hebei" },
+      "vars": { "allegiance": "f_fanzhen_legitimacy" },
+      "title": "朝议：是否削藩",
+      "description": "河北藩镇臣属度已低，朝中有大臣主张趁其未强先行削夺，也有人认为此举必致兵变。",
+      "options": [
+        {
+          "key": "cut",
+          "label": "下诏削藩",
+          "detail": "臣属度 −0.30，河北民变 +0.20，朝廷威望 +0.05（成则大治，败则大乱）",
+          "effects": {
+            "relation": { "fanzhen": -0.3 },
+            "unrest": { "hebei": 0.2 },
+            "legitimacy": 0.05
+          }
+        },
+        {
+          "key": "appease",
+          "label": "加官安抚",
+          "detail": "府库 −300,000 贯，臣属度 +0.10",
+          "effects": {
+            "treasury": -300000,
+            "relation": { "fanzhen": 0.1 }
+          }
+        },
+        {
+          "key": "wait",
+          "label": "留待后议",
+          "detail": "什么也不做，但臣属度每月自然下滑",
+          "effects": { "relation": { "fanzhen": -0.02 } }
+        }
+      ]
+    },
+    {
+      "kind": "border_raid",
+      "cooldown_months": 12,
+      "when": {
+        "region_exists": { "region": "longyou" },
+        "chance": 0.08
+      },
+      "focus": { "region": "longyou" },
+      "title": "吐蕃寇边",
+      "description": "陇右急报：吐蕃骑兵越境掠边，鄯州告急。边将请求增兵，朝中则有人主张以财帛换安宁。",
+      "options": [
+        {
+          "key": "reinforce",
+          "label": "增兵戍边",
+          "detail": "府库 −400,000 贯，陇右民变 −0.05，军威立",
+          "effects": {
+            "treasury": -400000,
+            "unrest": { "longyou": -0.05 },
+            "legitimacy": 0.03
+          }
+        },
+        {
+          "key": "bribe",
+          "label": "赐帛议和",
+          "detail": "府库 −250,000 贯，暂得安宁，但边镇离心 +0.04",
+          "effects": {
+            "treasury": -250000,
+            "relation": { "fanzhen": -0.04 },
+            "legitimacy": -0.02
+          }
+        },
+        {
+          "key": "ignore",
+          "label": "置之不理",
+          "detail": "不花钱，陇右民变 +0.12，边患可能扩大",
+          "effects": {
+            "unrest": { "longyou": 0.12 },
+            "legitimacy": -0.04
+          }
+        }
+      ]
+    },
+    {
+      "kind": "warlord_revolt",
+      "cooldown_months": 12,
+      "when": { "relation_below": { "from_key": "fanzhen", "value": -0.15 } },
+      "focus": { "region": "hebei" },
+      "title": "河北举兵",
+      "description": "河北藩镇臣属度已跌至危险，粮道断绝、使者不至。斥候报称其已在境内集结兵马，朝中议论纷纷。",
+      "options": [
+        {
+          "key": "suppress",
+          "label": "下诏讨伐",
+          "detail": "府库 −1,200,000 贯，威望 +0.10；若府库不足则威望大跌",
+          "effects": {
+            "treasury": -1200000,
+            "legitimacy": 0.1,
+            "unrest": { "hebei": 0.15 },
+            "relation": { "fanzhen": 0.05 }
+          }
+        },
+        {
+          "key": "conciliate",
+          "label": "遣使怀柔",
+          "detail": "府库 −600,000 贯，臣属度 +0.25，但朝廷威望受损",
+          "effects": {
+            "treasury": -600000,
+            "relation": { "fanzhen": 0.25 },
+            "legitimacy": -0.05
+          }
+        },
+        {
+          "key": "hold",
+          "label": "固守关隘",
+          "detail": "不花钱，但河北民变 +0.10，粮道继续断绝",
+          "effects": {
+            "unrest": { "hebei": 0.1 },
+            "legitimacy": -0.03
+          }
+        }
+      ]
+    }    ,
+    {
+      "kind": "appoint_commander",
+      "cooldown_months": 12,
+      "each": { "entity": "army", "where": { "faction": "player", "no_living_commander": true, "raised": true } },
+      "ref_key": "each.key",
+      "title": "{each}无主帅",
+      "description": "{each}主帅缺位，军中无主，诸将相持不下。朝廷须择人接掌，否则战力日削。",
+      "options_from": "appoint_commander"
+    },
+    {
+      "kind": "reward_general",
+      "cooldown_months": 12,
+      "each": {
+        "entity": "character",
+        "where": {
+          "faction": "player",
+          "alive": true,
+          "role_not": "emperor",
+          "loyalty_at_most": 0.45,
+          "loyalty_above": 0.18
+        }
+      },
+      "ref_key": "each.key",
+      "title": "{each}拥兵自重",
+      "description": "{each}久掌兵权而忠诚渐薄，朝中议论：赏则费财，削则生变。",
+      "options_from": "reward_general"
+    }
+  ]
+}

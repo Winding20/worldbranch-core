@@ -359,16 +359,23 @@ class SimulationEngine:
                 armies=armies,
                 month=branch.tick_index,
                 shocked=self._shocked_keys,
+                relations=relations,
             )
-            raised.extend(
-                raise_pack_decisions(
-                    self.session,
-                    branch,
-                    world_key=world_key,
-                    state=state,
-                    rng=random.Random(f"{branch.seed}:{branch.tick_index}:pack"),
-                )
+            from .counsel import attach_advice
+
+            pack_made = raise_pack_decisions(
+                self.session,
+                branch,
+                world_key=world_key,
+                state=state,
+                rng=random.Random(f"{branch.seed}:{branch.tick_index}:pack"),
             )
+            # 数据驱动的决策也要有朝臣说话，否则界面会缺一块
+            for decision in pack_made:
+                attach_advice(decision, characters, armies)
+            raised.extend(pack_made)
+            if pack_made:
+                self.session.flush()
 
         report.decisions = [d.to_dict() for d in raised]
         report.relations = [r.snapshot() for r in relations.values()]
