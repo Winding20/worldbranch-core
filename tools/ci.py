@@ -187,6 +187,12 @@ def main() -> int:
         code = run([node_bin(), "smoke-mobile.mjs", url], FRONTEND, env)
         if code != 0:
             return fail("渲染冒烟（窄屏）")
+
+        # 第二个世界：证明前端能承载任意世界包
+        say("渲染冒烟（第二世界 sanguo_208）")
+        code = run([node_bin(), "smoke-world.mjs", url, "sanguo_208"], FRONTEND, env)
+        if code != 0:
+            return fail("渲染冒烟（第二世界）")
     finally:
         stop(server)
 

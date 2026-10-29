@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
 const props = defineProps({
@@ -51,6 +51,9 @@ function polygonsOf(region) {
   return [];
 }
 
+//: 有边界的世界画色块，没边界的世界画点
+const hasPolygons = computed(() => props.regions.some((r) => polygonsOf(r).length > 0));
+
 const projection = computed(() => {
   let minLon = Infinity;
   let maxLon = -Infinity;
@@ -66,6 +69,19 @@ const projection = computed(() => {
       });
     });
   });
+  if (!Number.isFinite(minLon)) {
+    // 这个世界没有给边界（只有经纬度）：用中心点算投影，画成点位
+    props.regions.forEach((r) => {
+      const lon = Number(r.lon);
+      const lat = Number(r.lat);
+      if (Number.isFinite(lon) && Number.isFinite(lat)) {
+        if (lon < minLon) minLon = lon;
+        if (lon > maxLon) maxLon = lon;
+        if (lat < minLat) minLat = lat;
+        if (lat > maxLat) maxLat = lat;
+      }
+    });
+  }
   if (!Number.isFinite(minLon)) return null;
   const pad = 26;
   const spanLon = Math.max(maxLon - minLon, 0.001);
@@ -297,6 +313,28 @@ defineExpose({ zoomAt, reset });
           class="spotlight-ring"
           pointer-events="none"
         />
+
+        <!-- 没有边界的世界：用圆点表示地区 -->
+        <g v-if="!hasPolygons" class="region-dots" pointer-events="none">
+          <g v-for="r in regions" :key="`dot-${r.region_key}`">
+            <circle
+              :cx="projection ? projection.toXY(r.lon, r.lat)[0] : 0"
+              :cy="projection ? projection.toXY(r.lon, r.lat)[1] : 0"
+              :r="selected === r.region_key ? 11 : 8"
+              :fill="regionFill(r)"
+              :stroke="selected === r.region_key ? '#4aa8d8' : 'rgba(0,0,0,.35)'"
+              stroke-width="2"
+            />
+            <text
+              :x="projection ? projection.toXY(r.lon, r.lat)[0] : 0"
+              :y="projection ? projection.toXY(r.lon, r.lat)[1] - 16 : 0"
+              class="region-label"
+              text-anchor="middle"
+            >
+              {{ r.name }}
+            </text>
+          </g>
+        </g>
 
         <!-- 标签：宏观尺度只标势力，细尺度标每个道 -->
         <g v-if="macro" pointer-events="none">

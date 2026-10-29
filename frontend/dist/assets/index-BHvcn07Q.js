@@ -160,12 +160,19 @@ const _hoisted_8$7 = ["d"];
 const _hoisted_9$7 = ["d"];
 const _hoisted_10$7 = {
   key: 2,
+  class: "region-dots",
   "pointer-events": "none"
 };
-const _hoisted_11$7 = ["x", "y"];
+const _hoisted_11$7 = ["cx", "cy", "r", "fill", "stroke"];
 const _hoisted_12$6 = ["x", "y"];
-const _hoisted_13$5 = ["x", "y"];
-const _hoisted_14$5 = { class: "zoom-group" };
+const _hoisted_13$5 = {
+  key: 3,
+  "pointer-events": "none"
+};
+const _hoisted_14$5 = ["x", "y"];
+const _hoisted_15$4 = ["x", "y"];
+const _hoisted_16$4 = ["x", "y"];
+const _hoisted_17$4 = { class: "zoom-group" };
 
 
 const _sfc_main$7 = {
@@ -224,6 +231,9 @@ function polygonsOf(region) {
   return [];
 }
 
+//: 有边界的世界画色块，没边界的世界画点
+const hasPolygons = lq(() => props.regions.some((r) => polygonsOf(r).length > 0));
+
 const projection = lq(() => {
   let minLon = Infinity;
   let maxLon = -Infinity;
@@ -239,6 +249,19 @@ const projection = lq(() => {
       });
     });
   });
+  if (!Number.isFinite(minLon)) {
+    // 这个世界没有给边界（只有经纬度）：用中心点算投影，画成点位
+    props.regions.forEach((r) => {
+      const lon = Number(r.lon);
+      const lat = Number(r.lat);
+      if (Number.isFinite(lon) && Number.isFinite(lat)) {
+        if (lon < minLon) minLon = lon;
+        if (lon > maxLon) maxLon = lon;
+        if (lat < minLat) minLat = lat;
+        if (lat > maxLat) maxLat = lat;
+      }
+    });
+  }
   if (!Number.isFinite(minLon)) return null;
   const pad = 26;
   const spanLon = Math.max(maxLon - minLon, 0.001);
@@ -472,8 +495,32 @@ return (_ctx, _cache) => {
               "pointer-events": "none"
             }, null, 8, _hoisted_9$7))
           : l_("", true),
-        (macro.value)
+        (!hasPolygons.value)
           ? (ln(), lo("g", _hoisted_10$7, [
+              (ln(true), lo(i8, null, rU(__props.regions, (r) => {
+                return (ln(), lo("g", {
+                  key: `dot-${r.region_key}`
+                }, [
+                  lf("circle", {
+                    cx: projection.value ? projection.value.toXY(r.lon, r.lat)[0] : 0,
+                    cy: projection.value ? projection.value.toXY(r.lon, r.lat)[1] : 0,
+                    r: __props.selected === r.region_key ? 11 : 8,
+                    fill: regionFill(r),
+                    stroke: __props.selected === r.region_key ? '#4aa8d8' : 'rgba(0,0,0,.35)',
+                    "stroke-width": "2"
+                  }, null, 8, _hoisted_11$7),
+                  lf("text", {
+                    x: projection.value ? projection.value.toXY(r.lon, r.lat)[0] : 0,
+                    y: projection.value ? projection.value.toXY(r.lon, r.lat)[1] - 16 : 0,
+                    class: "region-label",
+                    "text-anchor": "middle"
+                  }, eh(r.name), 9, _hoisted_12$6)
+                ]))
+              }), 128))
+            ]))
+          : l_("", true),
+        (macro.value)
+          ? (ln(), lo("g", _hoisted_13$5, [
               (ln(true), lo(i8, null, rU(factionLabels.value, (f) => {
                 return (ln(), lo("g", {
                   key: `fl-${f.key}`
@@ -483,11 +530,11 @@ return (_ctx, _cache) => {
                     y: f.y - 2,
                     class: "faction-label",
                     "text-anchor": "middle"
-                  }, eh(f.name), 9, _hoisted_11$7)
+                  }, eh(f.name), 9, _hoisted_14$5)
                 ]))
               }), 128))
             ]))
-          : (ln(true), lo(i8, { key: 3 }, rU(shapes.value, (s) => {
+          : (ln(true), lo(i8, { key: 4 }, rU(shapes.value, (s) => {
               return (ln(), lo("g", {
                 key: `label-${s.region.region_key}`,
                 "pointer-events": "none"
@@ -497,19 +544,19 @@ return (_ctx, _cache) => {
                   y: labelPos(s.region)[1] - 2,
                   class: "region-label",
                   "text-anchor": "middle"
-                }, eh(s.region.name), 9, _hoisted_12$6),
+                }, eh(s.region.name), 9, _hoisted_15$4),
                 lf("text", {
                   x: labelPos(s.region)[0],
                   y: labelPos(s.region)[1] + 14,
                   class: "region-sub",
                   "text-anchor": "middle"
-                }, " 粮价 " + eh((s.region.price_index || 1).toFixed(2)), 9, _hoisted_13$5)
+                }, " 粮价 " + eh((s.region.price_index || 1).toFixed(2)), 9, _hoisted_16$4)
               ]))
             }), 128))
       ], 8, _hoisted_3$7)
     ], 42, _hoisted_2$7)),
     _cache[2] || (_cache[2] = lf("div", { class: "map-hint" }, "滚轮缩放 · 拖拽平移 · 点击地区查看详情与干预", -1)),
-    lf("div", _hoisted_14$5, [
+    lf("div", _hoisted_17$4, [
       lf("button", {
         title: "放大",
         onClick: _cache[0] || (_cache[0] = $event => (zoomAt(1.3)))
@@ -528,7 +575,7 @@ return (_ctx, _cache) => {
 }
 
 };
-const MapView = /*#__PURE__*/_export_sfc(_sfc_main$7, [['__scopeId',"data-v-a26c8cf1"]]);
+const MapView = /*#__PURE__*/_export_sfc(_sfc_main$7, [['__scopeId',"data-v-002d8370"]]);
 
 const _hoisted_1$6 = { class: "event-list" };
 const _hoisted_2$6 = {
