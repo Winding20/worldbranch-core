@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 from app.engine import SimulationEngine
-from app.engine.ending import HORIZON_MONTHS, evaluate_ending
+from app.engine.ending import evaluate_ending
+from app.worldpack import load_rubric
+
+#: 期限来自世界包，不再写死在引擎里
+HORIZON_MONTHS = load_rubric("tang_750")["horizon_months"]
 from app.services import create_branch, get_world_by_key
 
 

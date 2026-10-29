@@ -1,0 +1,17 @@
+{
+  "key": "tang_750",
+  "title": "天宝九年",
+  "subtitle": "五年沙盘",
+  "start_date": "0750-01-01",
+  "horizon_months": 60,
+  "role": "唐廷",
+  "role_brief": "天宝九年，天下尚称太平。五年之内，你能不能守住这份太平？",
+  "theme": "crimson-theater",
+  "player_faction": "tang",
+  "hostile_faction": "fanzhen",
+  "seed_module": "app.seed.tang_750",
+  "labels": {
+    "advance_unit": "月",
+    "horizon_label": "五年之后"
+  }
+}

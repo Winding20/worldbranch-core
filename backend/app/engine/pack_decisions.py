@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 from ..models import Branch
 from ..worldpack import PackError, load_decisions
 from .decisions import Decision, _has_recent, _make
+from .expr import build_env, evaluate, expression_of, is_expression
 from .rules_engine import State, conditions_met
 
 #: focus 策略：把 {region} 解析成哪个地区
@@ -44,14 +45,25 @@ def _resolve_focus(rule: dict[str, Any], state: State) -> str | None:
     return impl(state)
 
 
-def _render(text: str, *, state: State, focus_region: str | None) -> str:
-    """把 {region} 之类替换成实际名字。未知占位符原样保留，不静默吞掉。"""
+def _render(
+    text: str,
+    *,
+    state: State,
+    focus_region: str | None,
+    variables: dict[str, float] | None = None,
+) -> str:
+    """把 {region}/{month}/{变量} 替换成实际值，数字带千分位。"""
     if not text:
         return ""
-    mapping = {
+    mapping: dict[str, str] = {
         "region": (state.by_key[focus_region].name if focus_region in state.by_key else ""),
         "month": str(state.month),
     }
+    for name, value in (variables or {}).items():
+        if float(value).is_integer():
+            mapping[name] = f"{int(value):,}"
+        else:
+            mapping[name] = f"{value:,.2f}"
     out = text
     for key, value in mapping.items():
         out = out.replace("{" + key + "}", value)
@@ -86,14 +98,39 @@ def raise_pack_decisions(
             continue
 
         focus = _resolve_focus(rule, state)
+        env = build_env(
+            month=state.month,
+            regions_by_key=state.by_key,
+            focus_region=focus,
+            factions=state.factions,
+        )
+        # 规则里的 vars：一组具名的中间量，供 detail 与 effects 引用
+        variables: dict[str, float] = {}
+        for name, value in (rule.get("vars") or {}).items():
+            # 逐个求值并立刻放进 env：后面的变量可以引用前面的
+            variables[name] = evaluate(
+                value if isinstance(value, str) else str(value), env
+            )
+            env[name] = variables[name]
+
         options = []
         for opt in rule.get("options") or []:
             options.append(
                 {
                     "key": opt.get("key") or opt.get("label"),
-                    "label": _render(opt.get("label", ""), state=state, focus_region=focus),
-                    "note": _render(opt.get("note", ""), state=state, focus_region=focus),
-                    "effects": opt.get("effects") or {},
+                    "label": _render(
+                        opt.get("label", ""), state=state, focus_region=focus, variables=variables
+                    ),
+                    "detail": _render(
+                        opt.get("detail", opt.get("note", "")),
+                        state=state,
+                        focus_region=focus,
+                        variables=variables,
+                    ),
+                    "note": _render(
+                        opt.get("note", ""), state=state, focus_region=focus, variables=variables
+                    ),
+                    "effects": _resolve_effects(opt.get("effects") or {}, env),
                     "outcome": opt.get("outcome"),
                 }
             )
@@ -103,9 +140,17 @@ def raise_pack_decisions(
         decision = _make(
                 branch,
                 kind=kind,
-                title=_render(rule.get("title", kind), state=state, focus_region=focus),
+                title=_render(
+                    rule.get("title", kind),
+                    state=state,
+                    focus_region=focus,
+                    variables=variables,
+                ),
                 description=_render(
-                    rule.get("description", ""), state=state, focus_region=focus
+                    rule.get("description", ""),
+                    state=state,
+                    focus_region=focus,
+                    variables=variables,
                 ),
                 options=options,
                 ref_key=rule.get("ref_key"),
@@ -118,6 +163,19 @@ def raise_pack_decisions(
     if made:
         session.flush()
     return made
+
+
+def _resolve_effects(effects: dict[str, Any], env: dict[str, float]) -> dict[str, Any]:
+    """把 effects 里的表达式算成数字。嵌套结构（按地区/派系的映射）原样保留。"""
+    out: dict[str, Any] = {}
+    for key, value in effects.items():
+        if is_expression(value):
+            number = evaluate(expression_of(value), env)
+            # 钱和兵是整数概念，别把 896598.37 贯这种小数带进界面
+            out[key] = int(round(number)) if key in {"treasury", "troops"} else number
+        else:
+            out[key] = value
+    return out
 
 
 __all__ = ["raise_pack_decisions", "FOCUS_STRATEGIES"]

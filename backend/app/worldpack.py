@@ -88,6 +88,9 @@ KNOWN_METRIC_KINDS = {
     "faction_field",       # 派系某个 0–1 字段（如威望）
     "max_unrest",          # 全境最高民变，越高越差（反向）
     "region_control",      # 地区实际控制权：直辖 / 名义自专 / 沦陷
+    "unrest_pressure",     # 民变：平均与峰值加权（越高越差）
+    "avg_price",           # 平均粮价指数（越高越差）
+    "relation_value",      # 与某派系的关系值
 }
 
 

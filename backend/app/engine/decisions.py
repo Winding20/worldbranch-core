@@ -1,4 +1,4 @@
-﻿"""决策：世界主动向用户提出的问题。
+"""决策：世界主动向用户提出的问题。
 
 设计目的：让"用户不知道该干什么"变成"世界告诉你要决定什么"。
 每道决策都带 2–3 个选项，每个选项写明代价与后果，选完立即生效并留下事件。
@@ -88,58 +88,8 @@ def raise_decisions(
     tang = factions.get("tang")
     allegiance = _get_relation(relations, "fanzhen")
 
-    # 1) 藩镇府库见底，上表请饷
-    if (
-        fanzhen is not None
-        and tang is not None
-        and fanzhen.treasury < 0
-        and not _has_recent(session, branch.id, "warlord_supply", tick)
-    ):
-        need = int(min(abs(fanzhen.treasury) + 200_000, 1_500_000))
-        created.append(
-            _make(
-                branch,
-                kind="warlord_supply",
-                focus_region=_first_region(by_key, ("hebei", "fanyang", "hebei_plain")),
-                title="河北藩镇上表请饷",
-                description=(
-                    f"河北藩镇府库已透支 {abs(fanzhen.treasury):,.0f} 贯，"
-                    f"节度使上表请求朝廷拨付 {need:,} 贯军饷，言辞恭敬，但边军已在议论。"
-                ),
-                options=[
-                    {
-                        "key": "grant_full",
-                        "label": "如数拨付",
-                        "detail": f"府库 −{need:,} 贯，藩镇臣属度 +0.12，年内不会生事",
-                        "effects": {
-                            "treasury": -need,
-                            "relation": {"fanzhen": 0.12},
-                        },
-                    },
-                    {
-                        "key": "grant_half",
-                        "label": "折半给付",
-                        "detail": f"府库 −{need // 2:,} 贯，臣属度 +0.03，边军或有怨言",
-                        "effects": {
-                            "treasury": -need // 2,
-                            "relation": {"fanzhen": 0.03},
-                            "unrest": {"hebei": 0.06},
-                        },
-                    },
-                    {
-                        "key": "refuse",
-                        "label": "断然拒绝",
-                        "detail": "府库不减，臣属度 −0.18，河北民变与兵变风险上升",
-                        "effects": {
-                            "relation": {"fanzhen": -0.18},
-                            "unrest": {"hebei": 0.14},
-                            "legitimacy": -0.02,
-                        },
-                    },
-                ],
-            )
-        )
-
+    # 1) 藩镇请饷：已迁到世界包 seed/packs/tang_750/decisions.json
+    #    （数据驱动路径见 engine/pack_decisions.py）
     # 2) 某道缺粮、受灾或民变升高，是否赈济
     troubled = [
         r

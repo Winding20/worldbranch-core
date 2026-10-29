@@ -1,0 +1,48 @@
+{
+  "_comment": "天宝九年沙盘的决策。请饷这条从 engine/decisions.py 迁来，属本世界（fanzhen 派系只存在于这里）。",
+  "rules": [
+    {
+      "kind": "warlord_supply",
+      "cooldown_months": 12,
+      "when": { "treasury_below": { "faction": "fanzhen", "amount": 0 } },
+      "focus": { "region": "hebei" },
+      "vars": {
+        "deficit": "abs(f_fanzhen_treasury)",
+        "need": "min(deficit + 200000, 1500000)"
+      },
+      "title": "河北藩镇上表请饷",
+      "description": "河北藩镇府库已透支 {deficit} 贯，节度使上表请求朝廷拨付 {need} 贯军饷，言辞恭敬，但边军已在议论。",
+      "options": [
+        {
+          "key": "grant_full",
+          "label": "如数拨付",
+          "detail": "府库 −{need} 贯，藩镇臣属度 +0.12，年内不会生事",
+          "effects": {
+            "treasury": "-need",
+            "relation": { "fanzhen": 0.12 }
+          }
+        },
+        {
+          "key": "grant_half",
+          "label": "折半给付",
+          "detail": "府库 −{need} 贯之半，臣属度 +0.03，边军或有怨言",
+          "effects": {
+            "treasury": "-need / 2",
+            "relation": { "fanzhen": 0.03 },
+            "unrest": { "hebei": 0.06 }
+          }
+        },
+        {
+          "key": "refuse",
+          "label": "断然拒绝",
+          "detail": "府库不减，臣属度 −0.18，河北民变与兵变风险上升",
+          "effects": {
+            "relation": { "fanzhen": -0.18 },
+            "unrest": { "hebei": 0.14 },
+            "legitimacy": -0.02
+          }
+        }
+      ]
+    }
+  ]
+}

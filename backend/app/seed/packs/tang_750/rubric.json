@@ -1,0 +1,56 @@
+{
+  "_comment": "天宝九年的五年沙盘。五项指标：府库 0.30、民心 0.25、粮价 0.15、藩镇 0.20、威望 0.10。",
+  "horizon_months": 60,
+  "grades": [
+    [80, "大治", "仓廪充实，藩镇敛手，民无离散。"],
+    [65, "中兴", "虽有小乱，根基未动，天下可期。"],
+    [45, "苟安", "勉强维持，隐患仍在，只待时日。"],
+    [25, "倾危", "府库见底，人心浮动，已在崩坏的边缘。"],
+    [0, "崩坏", "藩镇坐大，民变四起，朝廷号令不出关中。"]
+  ],
+  "metrics": [
+    {
+      "key": "treasury",
+      "label": "府库",
+      "weight": 0.3,
+      "kind": "faction_treasury",
+      "faction": "tang",
+      "offset": 0,
+      "span": 8000000
+    },
+    {
+      "key": "unrest",
+      "label": "民心",
+      "weight": 0.25,
+      "kind": "unrest_pressure",
+      "avg_weight": 0.6,
+      "max_weight": 0.4,
+      "span": 0.6,
+      "_why": "一个道烧起来，不能靠其它道平均掉"
+    },
+    {
+      "key": "price",
+      "label": "粮价",
+      "weight": 0.15,
+      "kind": "avg_price",
+      "base": 0.8,
+      "span": 2.2
+    },
+    {
+      "key": "fanzhen",
+      "label": "藩镇",
+      "weight": 0.2,
+      "kind": "relation_value",
+      "from_key": "fanzhen",
+      "span": 0.7
+    },
+    {
+      "key": "legitimacy",
+      "label": "威望",
+      "weight": 0.1,
+      "kind": "faction_field",
+      "faction": "tang",
+      "field": "legitimacy"
+    }
+  ]
+}

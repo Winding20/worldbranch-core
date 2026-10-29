@@ -11,7 +11,7 @@ from typing import Any, Callable
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ..models import Branch, CharacterState, FactionState, RegionState
+from ..models import Branch, CharacterState, FactionState, RegionState, RelationState
 from ..utils import format_date
 from ..worldpack import PackError, load_rubric
 
@@ -38,6 +38,12 @@ class _Ctx:
             c.character_key: c
             for c in session.scalars(
                 select(CharacterState).where(CharacterState.branch_id == branch.id)
+            )
+        }
+        self.relations = {
+            r.from_key: r
+            for r in session.scalars(
+                select(RelationState).where(RelationState.branch_id == branch.id)
             )
         }
 
@@ -115,6 +121,33 @@ def _region_control(ctx: _Ctx, spec: dict[str, Any]) -> float:
     return float(scores["held"])
 
 
+def _unrest_pressure(ctx: _Ctx, spec: dict[str, Any]) -> float:
+    """民心：平均与峰值加权。一个地区烧起来，不能被其它地区平均掉。"""
+    avg = sum(r.unrest for r in ctx.regions) / max(len(ctx.regions), 1)
+    peak = max((r.unrest for r in ctx.regions), default=0.0)
+    aw = float(spec.get("avg_weight", 0.6))
+    mw = float(spec.get("max_weight", 0.4))
+    span = float(spec.get("span", 0.6)) or 1.0
+    pressure = avg * aw + peak * mw
+    return (1 - _clamp(pressure / span)) * 100
+
+
+def _avg_price(ctx: _Ctx, spec: dict[str, Any]) -> float:
+    avg = sum(r.price_index for r in ctx.regions) / max(len(ctx.regions), 1)
+    base = float(spec.get("base", 0.8))
+    span = float(spec.get("span", 2.2)) or 1.0
+    return (1 - _clamp((avg - base) / span)) * 100
+
+
+def _relation_value(ctx: _Ctx, spec: dict[str, Any]) -> float:
+    """与某派系的关系值（-1..1）折算成 0..100。"""
+    key = spec.get("from_key") or spec.get("faction")
+    rel = ctx.relations.get(key)
+    value = rel.value if rel is not None else float(spec.get("default", 0.5))
+    span = float(spec.get("span", 0.7)) or 1.0
+    return _clamp(value / span) * 100
+
+
 METRICS: dict[str, Callable[[_Ctx, dict[str, Any]], float]] = {
     "regions_held": _regions_held,
     "rebellion_status": _rebellion_status,
@@ -122,6 +155,9 @@ METRICS: dict[str, Callable[[_Ctx, dict[str, Any]], float]] = {
     "faction_field": _faction_field,
     "max_unrest": _max_unrest,
     "region_control": _region_control,
+    "unrest_pressure": _unrest_pressure,
+    "avg_price": _avg_price,
+    "relation_value": _relation_value,
 }
 
 
