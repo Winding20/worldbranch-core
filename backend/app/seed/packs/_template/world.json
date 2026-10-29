@@ -1,0 +1,16 @@
+{
+  "_readme": "把整个 _template 目录复制成 <你的 world_key>，然后按 docs/世界包规范.md 改写。校验：python tools/check_world_pack.py <world_key>",
+  "key": "template_000",
+  "title": "示例世界",
+  "subtitle": "示例时段",
+  "start_date": "0200-01-01",
+  "horizon_months": 24,
+  "role": "示例势力",
+  "role_brief": "你是示例势力。这句话说明玩家此刻的处境。",
+  "theme": "celadon-paper",
+  "seed_module": "",
+  "labels": {
+    "advance_unit": "月",
+    "horizon_label": "两年之后"
+  }
+}

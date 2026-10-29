@@ -1,0 +1,35 @@
+{
+  "_readme": "结局评分。想清楚：这段历史的成败看哪几件事？给它们分配权重（和为 1）。grades 门槛从高到低排，最后一项必须是 0。",
+  "horizon_months": 24,
+  "grades": [
+    [80, "上上", "局面大好。"],
+    [50, "中平", "勉强维持。"],
+    [0, "倾覆", "大势已去。"]
+  ],
+  "metrics": [
+    {
+      "key": "core",
+      "label": "根本之地",
+      "weight": 0.6,
+      "kind": "regions_held",
+      "regions": ["capital"],
+      "faction": "player"
+    },
+    {
+      "key": "treasury",
+      "label": "府库",
+      "weight": 0.4,
+      "kind": "faction_treasury",
+      "faction": "player",
+      "offset": 0,
+      "span": 1000000
+    }
+  ],
+  "facts": {
+    "capitals_held": {
+      "kind": "count_regions_held",
+      "regions": ["capital"],
+      "faction": "player"
+    }
+  }
+}

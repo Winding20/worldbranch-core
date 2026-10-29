@@ -1,4 +1,4 @@
-﻿"""WorldBranch CI：一条命令跑完全部检查。
+"""WorldBranch CI：一条命令跑完全部检查。
 
 本地与 GitHub Actions 共用这一份实现，避免两套脚本走偏。
 
@@ -126,6 +126,12 @@ def main() -> int:
         code = run([sys.executable, *cmd], BACKEND, env)
         if code != 0:
             return fail(cmd[-1])
+
+    # ---------- 4.5 世界包校验 ----------
+    say("世界包校验 check_world_pack")
+    code = run([sys.executable, "tools/check_world_pack.py"], ROOT, env)
+    if code != 0:
+        return fail("世界包校验")
 
     if args.skip_frontend:
         say("跳过前端（--skip-frontend）")
