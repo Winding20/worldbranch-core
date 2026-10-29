@@ -35,6 +35,7 @@ class State:
         characters: dict[str, Any] | None = None,
         armies: dict[str, Any] | None = None,
         month: int = 0,
+        shocked: set[str] | None = None,
     ) -> None:
         self.regions = regions
         self.by_key = {r.region_key: r for r in regions}
@@ -42,6 +43,8 @@ class State:
         self.characters = characters or {}
         self.armies = armies or {}
         self.month = month
+        #: 本月刚受冲击的地区（缺粮、灾荒），供 region_shocked 条件用
+        self.shocked = shocked or set()
 
     def worst_unrest(self):
         return max(self.regions, key=lambda r: r.unrest, default=None)
@@ -91,6 +94,28 @@ def _chance(state: State, value: float) -> bool:
     return roll() < float(value)
 
 
+def _grain_below(state: State, value: float) -> bool:
+    return any(r.grain_stock <= float(value) for r in state.regions)
+
+
+def _price_above(state: State, value: Any) -> bool:
+    if isinstance(value, dict):
+        region = state.by_key.get(value.get("region", ""))
+        return bool(region and region.price_index > float(value["value"]))
+    return any(r.price_index > float(value) for r in state.regions)
+
+
+def _region_shocked(state: State, value: bool = True) -> bool:
+    return bool(state.shocked) if value else not state.shocked
+
+
+def _any_of(state: State, spec: list[dict[str, Any]]) -> bool:
+    """任一子条件成立即可。用来表达「缺粮 或 民变 或 刚受灾」。"""
+    if not isinstance(spec, list) or not spec:
+        raise PackError("any_of 需要一个非空的条件数组")
+    return any(conditions_met(state, sub) for sub in spec)
+
+
 CONDITIONS: dict[str, Callable[[State, Any], bool]] = {
     "treasury_below": _treasury_below,
     "unrest_above": _unrest_above,
@@ -100,6 +125,10 @@ CONDITIONS: dict[str, Callable[[State, Any], bool]] = {
     "character_alive": _character_alive,
     "character_loyalty_below": _character_loyalty_below,
     "chance": _chance,
+    "grain_below": _grain_below,
+    "price_above": _price_above,
+    "region_shocked": _region_shocked,
+    "any_of": _any_of,
 }
 
 
@@ -226,6 +255,19 @@ def _apply_morale(ctx, spec) -> None:
             army.morale = min(max(army.morale + float(delta), 0.0), 1.0)
 
 
+def _apply_tax(ctx, spec) -> None:
+    """调整税率（按地区）。"""
+    if isinstance(spec, dict) and "delta" in spec:
+        region = _target_region(ctx, spec.get("target"))
+        if region is not None:
+            region.tax_rate = max(0.0, region.tax_rate + float(spec["delta"]))
+        return
+    for key, delta in (spec or {}).items():
+        region = ctx["regions_by_key"].get(key)
+        if region is not None:
+            region.tax_rate = max(0.0, region.tax_rate + float(delta))
+
+
 EFFECTS: dict[str, Callable[[dict[str, Any], Any], None]] = {
     "treasury": _apply_treasury,
     "legitimacy": _apply_legitimacy,
@@ -237,6 +279,7 @@ EFFECTS: dict[str, Callable[[dict[str, Any], Any], None]] = {
     "loyalty": _apply_loyalty,
     "troops": _apply_troops,
     "morale": _apply_morale,
+    "tax": _apply_tax,
 }
 
 

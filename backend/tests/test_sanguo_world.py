@@ -68,7 +68,10 @@ def test_sanguo_pack_loads(db_session):
     assert rubric["horizon_months"] == 12
     labels = {m["label"] for m in rubric["metrics"]}
     assert labels == {"立足", "联盟", "兵力"}
-    assert {r["kind"] for r in rules["rules"]} == {"alliance_choice", "seize_jiangling"}
+    kinds = {r["kind"] for r in rules["rules"]}
+    # 世界自己的规则 + 所有世界共享的通用规则（_common）
+    assert {"alliance_choice", "seize_jiangling"} <= kinds
+    assert {"famine_relief", "transport_break"} <= kinds
 
 
 def test_sanguo_events_fire_on_schedule(db_session):

@@ -90,55 +90,7 @@ def raise_decisions(
 
     # 1) 藩镇请饷：已迁到世界包 seed/packs/tang_750/decisions.json
     #    （数据驱动路径见 engine/pack_decisions.py）
-    # 2) 某道缺粮、受灾或民变升高，是否赈济
-    troubled = [
-        r
-        for r in regions
-        if r.unrest >= 0.2 or r.grain_stock <= 0 or r.region_key in shocked_keys
-    ]
-    if troubled and not _has_recent(session, branch.id, "famine_relief", tick):
-        worst = max(troubled, key=lambda r: (r.unrest, r.price_index))
-        cost = int(worst.population * 0.42 * 1.2)
-        created.append(
-            _make(
-                branch,
-                kind="famine_relief",
-                focus_region=worst.region_key,
-                title=f"{worst.name}请求赈济",
-                description=(
-                    f"{worst.name}粮价指数已达 {worst.price_index:.2f}，"
-                    f"民变指数 {worst.unrest:.2f}，地方官员请求朝廷开仓或减免赋税。"
-                ),
-                options=[
-                    {
-                        "key": "open_granary",
-                        "label": "开仓放粮",
-                        "detail": f"府库 −{cost:,} 贯，{worst.name}民变 −0.22，粮价回落",
-                        "effects": {
-                            "treasury": -cost,
-                            "unrest": {worst.region_key: -0.22},
-                            "grain": {worst.region_key: int(worst.population * 0.42 * 0.9)},
-                            "legitimacy": 0.01,
-                        },
-                    },
-                    {
-                        "key": "tax_relief",
-                        "label": "减免赋税",
-                        "detail": f"{worst.name}民变 −0.12，但来年该道税入下降",
-                        "effects": {
-                            "unrest": {worst.region_key: -0.12},
-                            "tax": {worst.region_key: -0.02},
-                        },
-                    },
-                    {
-                        "key": "ignore",
-                        "label": "暂不处置",
-                        "detail": f"不花钱，{worst.name}民变 +0.10，粮价可能继续走高",
-                        "effects": {"unrest": {worst.region_key: 0.1}},
-                    },
-                ],
-            )
-        )
+    # 2) 赈济：已迁到共享规则 seed/packs/_common/decisions.json
 
     # 3) 藩镇离心，是否削藩
     if (
@@ -236,51 +188,7 @@ def raise_decisions(
             )
         )
 
-    # 5) 漕运受阻：江淮粮米运不出来
-    huainan = by_key.get("huainan")
-    jiangnan = by_key.get("jiangnan")
-    if (
-        huainan is not None
-        and jiangnan is not None
-        and (huainan.price_index > 1.25 or jiangnan.price_index > 1.25)
-        and not _has_recent(session, branch.id, "transport_break", tick)
-    ):
-        created.append(
-            _make(
-                branch,
-                kind="transport_break",
-                focus_region=_first_region(by_key, ("huainan", "jiangnan", "suiyang")),
-                title="漕运受阻",
-                description=(
-                    "江淮粮船滞留，漕运不畅，关内粮价已有抬头的迹象。"
-                    "转运使请示：是改走陆路加急，还是暂缓漕运以减少损耗？"
-                ),
-                options=[
-                    {
-                        "key": "land_route",
-                        "label": "改走陆路",
-                        "detail": "府库 −350,000 贯，关内、河南粮价回落",
-                        "effects": {
-                            "treasury": -350_000,
-                            "unrest": {"guannei": -0.04, "henan": -0.04},
-                            "grain": {"guannei": 400_000},
-                        },
-                    },
-                    {
-                        "key": "suspend",
-                        "label": "暂缓漕运",
-                        "detail": "省下运费，但关内粮价 +0.15，民怨上升",
-                        "effects": {"unrest": {"guannei": 0.08}, "legitimacy": -0.01},
-                    },
-                    {
-                        "key": "requisition",
-                        "label": "就地强征民船",
-                        "detail": "不花钱，江淮民变 +0.12",
-                        "effects": {"unrest": {"huainan": 0.12, "jiangnan": 0.08}},
-                    },
-                ],
-            )
-        )
+    # 5) 漕运：已迁到共享规则 seed/packs/_common/decisions.json
 
     # 6) 藩镇彻底翻脸，兵锋相向
     if (

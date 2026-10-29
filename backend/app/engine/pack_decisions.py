@@ -25,6 +25,9 @@ from .rules_engine import State, conditions_met
 FOCUS_STRATEGIES = {
     "worst_unrest": lambda state: (state.worst_unrest().region_key if state.worst_unrest() else None),
     "first_region": lambda state: state.regions[0].region_key if state.regions else None,
+    "max_price": lambda state: (
+        max(state.regions, key=lambda r: r.price_index).region_key if state.regions else None
+    ),
 }
 
 
@@ -167,15 +170,21 @@ def raise_pack_decisions(
 
 def _resolve_effects(effects: dict[str, Any], env: dict[str, float]) -> dict[str, Any]:
     """把 effects 里的表达式算成数字。嵌套结构（按地区/派系的映射）原样保留。"""
-    out: dict[str, Any] = {}
-    for key, value in effects.items():
+    #: 这些键是「指向谁」，不是数值，不能当表达式算
+    SELECTORS = {"target", "region", "character", "army", "faction"}
+
+    def resolve(value: Any, name: str) -> Any:
+        if name in SELECTORS:
+            return value
         if is_expression(value):
             number = evaluate(expression_of(value), env)
             # 钱和兵是整数概念，别把 896598.37 贯这种小数带进界面
-            out[key] = int(round(number)) if key in {"treasury", "troops"} else number
-        else:
-            out[key] = value
-    return out
+            return int(round(number)) if name in {"treasury", "troops"} else number
+        if isinstance(value, dict):
+            return {k: resolve(v, k) for k, v in value.items()}
+        return value
+
+    return {key: resolve(value, key) for key, value in effects.items()}
 
 
 __all__ = ["raise_pack_decisions", "FOCUS_STRATEGIES"]

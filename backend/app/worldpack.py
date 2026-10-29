@@ -130,14 +130,25 @@ def load_rubric(world_key: str) -> dict[str, Any]:
 
 
 def load_decisions(world_key: str) -> dict[str, Any]:
-    """读 decisions.json（可选文件）。没有就返回空规则表。"""
+    """读决策规则。
+
+    两个来源，按顺序合并：
+      1. PACK_ROOT/_common/decisions.json —— 所有世界通用（如赈济、漕运）
+      2. <world_key>/decisions.json —— 本世界专属，同名 kind 覆盖通用规则
+    """
+    rules: list[dict[str, Any]] = []
+    common = PACK_ROOT / "_common" / "decisions.json"
+    if common.is_file():
+        rules.extend(_read_json(common).get("rules") or [])
+
     path = pack_dir(world_key) / "decisions.json"
-    if not path.is_file():
-        return {"rules": []}
-    data = _read_json(path)
-    rules = data.get("rules")
-    if rules is None:
-        return {"rules": []}
+    if path.is_file():
+        own = _read_json(path).get("rules") or []
+        own_kinds = {r.get("kind") for r in own}
+        rules = [r for r in rules if r.get("kind") not in own_kinds]
+        rules.extend(own)
+
+    data = {"rules": rules}
     if not isinstance(rules, list):
         raise PackError("decisions.json 的 rules 必须是数组")
 

@@ -358,6 +358,7 @@ class SimulationEngine:
                 characters=characters,
                 armies=armies,
                 month=branch.tick_index,
+                shocked=self._shocked_keys,
             )
             raised.extend(
                 raise_pack_decisions(

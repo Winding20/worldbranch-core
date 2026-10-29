@@ -1,0 +1,83 @@
+{
+  "_comment": "所有世界通用的决策规则。世界自己的 decisions.json 里同名 kind 会覆盖这里。",
+  "rules": [
+    {
+      "kind": "famine_relief",
+      "cooldown_months": 12,
+      "when": {
+        "any_of": [
+          { "unrest_above": 0.2 },
+          { "grain_below": 0 },
+          { "region_shocked": true }
+        ]
+      },
+      "focus": { "strategy": "worst_unrest" },
+      "vars": {
+        "cost": "round(focus_population * 0.504)",
+        "grain_in": "round(focus_population * 0.378)"
+      },
+      "title": "{region}请求赈济",
+      "description": "{region}民变已起，地方官员请求朝廷开仓或减免赋税。",
+      "options": [
+        {
+          "key": "open_granary",
+          "label": "开仓放粮",
+          "detail": "府库 −{cost} 贯，{region}民变 −0.22，粮价回落",
+          "effects": {
+            "treasury": "-cost",
+            "unrest": { "target": "focus", "delta": -0.22 },
+            "grain": { "target": "focus", "delta": "grain_in" },
+            "legitimacy": 0.01
+          }
+        },
+        {
+          "key": "tax_relief",
+          "label": "减免赋税",
+          "detail": "{region}民变 −0.12，但来年该道税入下降",
+          "effects": {
+            "unrest": { "target": "focus", "delta": -0.12 },
+            "tax": { "target": "focus", "delta": -0.02 }
+          }
+        },
+        {
+          "key": "ignore",
+          "label": "暂不处置",
+          "detail": "不花钱，{region}民变 +0.10，粮价可能继续走高",
+          "effects": {
+            "unrest": { "target": "focus", "delta": 0.1 },
+            "legitimacy": -0.01
+          }
+        }
+      ]
+    },
+    {
+      "kind": "transport_break",
+      "cooldown_months": 12,
+      "when": { "price_above": 1.25 },
+      "focus": { "strategy": "max_price" },
+      "title": "漕运受阻",
+      "description": "江淮粮船滞留，漕运不畅，关内粮价已有抬头的迹象。转运使请示：是改走陆路加急，还是暂缓漕运以减少损耗？",
+      "options": [
+        {
+          "key": "land_route",
+          "label": "改走陆路",
+          "detail": "府库 −350,000 贯，沿途粮价回落",
+          "effects": {
+            "treasury": -350000,
+            "unrest": { "target": "focus", "delta": -0.04 },
+            "grain": { "target": "focus", "delta": 400000 }
+          }
+        },
+        {
+          "key": "suspend",
+          "label": "暂缓漕运",
+          "detail": "省下转运之费，但粮价继续走高",
+          "effects": {
+            "treasury": 40000,
+            "unrest": { "target": "focus", "delta": 0.05 }
+          }
+        }
+      ]
+    }
+  ]
+}
