@@ -7,6 +7,8 @@
   "role": "唐廷",
   "role_brief": "你是唐廷。天下兵马、府库钱粮、藩镇顺逆，都由你决断。",
   "theme": "crimson-theater",
+  "player_faction": "tang",
+  "hostile_faction": "yan",
   "labels": {
     "advance_unit": "月",
     "horizon_label": "广德元年"

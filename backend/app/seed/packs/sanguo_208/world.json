@@ -1,0 +1,16 @@
+{
+  "key": "sanguo_208",
+  "title": "赤壁",
+  "subtitle": "建安十三年 · 孙刘联盟",
+  "start_date": "0208-07-01",
+  "horizon_months": 12,
+  "role": "刘备",
+  "role_brief": "你寄寓荆州，兵不满万。曹操已下荆州，顺江东来。是联吴，还是西走？",
+  "theme": "celadon-paper",
+  "player_faction": "liu",
+  "hostile_faction": "cao",
+  "labels": {
+    "advance_unit": "月",
+    "horizon_label": "建安十四年"
+  }
+}

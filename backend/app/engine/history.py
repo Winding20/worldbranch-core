@@ -1,4 +1,4 @@
-﻿"""史实事件引擎。
+"""史实事件引擎。
 
 安史之乱模拟器的关键机制：**史实不是剧本，是有前提的**。
 
@@ -44,8 +44,13 @@ def check_conditions(
     regions: dict[str, RegionState],
     characters: dict[str, CharacterState],
     armies: dict[str, ArmyState],
+    player: str = "tang",
 ) -> tuple[bool, str]:
-    """返回 (是否成立, 不成立的原因)。"""
+    """返回 (是否成立, 不成立的原因)。
+
+    ``player`` 是玩家所属派系的 key。默认 tang 是为了兼容旧数据，
+    新世界应当在 world.json 里写明 player_faction。
+    """
     if not conditions:
         return True, ""
 
@@ -55,13 +60,13 @@ def check_conditions(
             if region is None:
                 return False, f"{value} 不在此世界"
             # 地区被叛军占据即视为"已失"
-            if region.faction_key != "tang":
+            if region.faction_key != player:
                 return False, f"{region.name} 已失"
         elif key == "region_lost":
             region = regions.get(value)
             if region is None:
                 return False, f"{value} 不在此世界"
-            if region.faction_key == "tang":
+            if region.faction_key == player:
                 return False, f"{region.name} 仍在唐军手中"
         elif key == "character_dead":
             person = characters.get(value)
@@ -90,6 +95,8 @@ def run_historical_events(
     armies: dict[str, ArmyState],
     factions: dict[str, FactionState],
     emit_event: Callable[..., Any] | None = None,
+    player: str = "tang",
+    hostile: str = "yan",
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """推进到当前日期后，检查有没有该发生的史实。
 
@@ -130,6 +137,7 @@ def run_historical_events(
             regions=region_map,
             characters=characters,
             armies=armies,
+            player=player,
         )
 
         # 前提成立、但这件史实带"岔路口"：把决定权交给用户，暂缓发生
@@ -192,6 +200,8 @@ def run_historical_events(
             characters=characters,
             armies=armies,
             factions=factions,
+            player=player,
+            hostile=hostile,
         )
         session.add(
             HistoricalFire(
@@ -262,6 +272,12 @@ def _fork_focus(event: HistoricalEvent) -> str | None:
     return None
 
 
+def _faction_label(factions: dict[str, FactionState], key: str) -> str:
+    """派系显示名；拿不到就用 key。"""
+    fac = factions.get(key)
+    return getattr(fac, "name", None) or key
+
+
 def _apply_effects(
     effects: dict[str, Any],
     *,
@@ -269,39 +285,53 @@ def _apply_effects(
     characters: dict[str, CharacterState],
     armies: dict[str, ArmyState],
     factions: dict[str, FactionState],
+    player: str = "tang",
+    hostile: str = "yan",
 ) -> list[dict[str, Any]]:
     applied: list[dict[str, Any]] = []
+    p_label = _faction_label(factions, player)
+    h_label = _faction_label(factions, hostile)
 
     if effects.get("lose_region"):
         region = regions.get(effects["lose_region"])
-        if region is not None and region.faction_key == "tang":
-            region.faction_key = "yan"
-            applied.append({"label": f"{region.name}失守", "before": "唐", "after": "燕"})
+        if region is not None and region.faction_key == player:
+            region.faction_key = hostile
+            applied.append(
+                {"label": f"{region.name}失守", "before": p_label, "after": h_label}
+            )
 
-    # 名义归附：叛军投降，州郡在名义上归唐，实则由降将自专
+    # 名义归附：对手投降，州郡在名义上归玩家，实则由降将自专
     for key in effects.get("nominal_control") or []:
         region = regions.get(key)
         if region is not None:
-            before = "燕" if region.faction_key != "tang" else "唐"
-            region.faction_key = "tang"
+            before = h_label if region.faction_key != player else p_label
+            region.faction_key = player
             region.autonomous = True
             applied.append(
-                {"label": f"{region.name}名义归附", "before": before, "after": "唐（藩镇自专）"}
+                {
+                    "label": f"{region.name}名义归附",
+                    "before": before,
+                    "after": f"{p_label}（藩镇自专）",
+                }
             )
 
     if effects.get("gain_region"):
         region = regions.get(effects["gain_region"])
-        if region is not None and region.faction_key != "tang":
-            region.faction_key = "tang"
-            applied.append({"label": f"收复{region.name}", "before": "燕", "after": "唐"})
+        if region is not None and region.faction_key != player:
+            region.faction_key = player
+            applied.append(
+                {"label": f"收复{region.name}", "before": h_label, "after": p_label}
+            )
 
-    # 同一次收复里连带收回的据点（如收复长安时一并复潼关）
+    # 同一次收复里连带收回的据点
     for key in effects.get("gain_region_extra") or []:
         region = regions.get(key)
-        if region is not None and region.faction_key != "tang":
-            region.faction_key = "tang"
+        if region is not None and region.faction_key != player:
+            region.faction_key = player
             region.autonomous = False
-            applied.append({"label": f"收复{region.name}", "before": "燕", "after": "唐"})
+            applied.append(
+                {"label": f"收复{region.name}", "before": h_label, "after": p_label}
+            )
 
     for key in effects.get("kill") or []:
         person = characters.get(key)
@@ -309,7 +339,7 @@ def _apply_effects(
             person.alive = False
             applied.append({"label": f"{person.name}身死", "before": "在世", "after": "殁"})
 
-    tang = factions.get("tang")
+    tang = factions.get(player)
     if tang is not None:
         if effects.get("treasury"):
             before = tang.treasury
@@ -362,11 +392,18 @@ def _apply_effects(
 
 
 def resolve_fork(
-    session: Session, branch: Branch, decision: Decision, option_key: str
+    session: Session,
+    branch: Branch,
+    decision: Decision,
+    option_key: str,
+    *,
+    player: str = "tang",
+    hostile: str = "yan",
 ) -> SimEvent:
     """用户在历史岔路口上做出选择。
 
     选「按史载」→ 事件照史发生；选别的 → 事件改道，并记录原因。
+    player/hostile 决定地区归属改给谁。
     """
     event = session.scalar(
         select(HistoricalEvent).where(
@@ -423,6 +460,8 @@ def resolve_fork(
         characters=characters,
         armies=armies,
         factions=factions,
+        player=player,
+        hostile=hostile,
     )
 
     fire = session.scalar(

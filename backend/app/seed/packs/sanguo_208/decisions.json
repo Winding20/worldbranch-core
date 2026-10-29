@@ -1,0 +1,63 @@
+{
+  "_comment": "赤壁这一年，刘备会遇到的抉择。全部是数据——引擎不认识「孙权」「江陵」。",
+  "rules": [
+    {
+      "kind": "alliance_choice",
+      "cooldown_months": 12,
+      "when": { "region_held_by": { "region": "jiangxia", "faction": "liu" } },
+      "focus": { "region": "jiangxia" },
+      "title": "鲁肃来见",
+      "description": "鲁肃自柴桑来，问将军欲何往。联吴则共抗曹操，不联则西走。",
+      "options": [
+        {
+          "key": "ally",
+          "label": "联吴抗曹",
+          "note": "与孙权结盟：威望上升，但从此受制于人",
+          "effects": {
+            "relation": { "sun": 0.25 },
+            "legitimacy": 0.05
+          }
+        },
+        {
+          "key": "go_west",
+          "label": "西走投刘璋",
+          "note": "避战自保：手下人心浮动，兵员流失",
+          "effects": {
+            "relation": { "sun": -0.15 },
+            "legitimacy": -0.08,
+            "troops": { "liu_army": -3000 }
+          }
+        }
+      ]
+    },
+    {
+      "kind": "seize_jiangling",
+      "cooldown_months": 6,
+      "when": { "unrest_above": 0.15 },
+      "focus": { "strategy": "worst_unrest" },
+      "title": "{region}人心浮动",
+      "description": "{region}新附，吏民未安。或赈济安民，或征粮以给军。",
+      "options": [
+        {
+          "key": "relieve",
+          "label": "开仓安民",
+          "note": "存粮减少，民变下降",
+          "effects": {
+            "grain": { "delta": -8000, "target": "focus" },
+            "unrest": { "delta": -0.12, "target": "focus" }
+          }
+        },
+        {
+          "key": "levy",
+          "label": "征粮给军",
+          "note": "存粮增加，民变上升",
+          "effects": {
+            "grain": { "delta": 8000, "target": "focus" },
+            "unrest": { "delta": 0.1, "target": "focus" },
+            "legitimacy": -0.02
+          }
+        }
+      ]
+    }
+  ]
+}

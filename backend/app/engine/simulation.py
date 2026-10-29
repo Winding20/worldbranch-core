@@ -15,7 +15,7 @@ from typing import Any, Iterable
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from ..worldpack import pack_exists
+from ..worldpack import load_world, pack_exists
 from ..models import (
     ArmyState,
     Branch,
@@ -93,6 +93,21 @@ class TickReport:
             "defections": self.defections,
             "paused": self.paused,
         }
+
+
+def _player_and_hostile(world_key: str | None) -> tuple[str, str]:
+    """玩家派系与敌对派系：优先读世界包，缺省回到 tang/yan。
+
+    这两个 key 决定「region_held / lose_region」这类判定的归属，
+    以前写死在 history.py 里，是三国之类世界跑不起来的原因。
+    """
+    if not world_key or not pack_exists(world_key):
+        return "tang", "yan"
+    try:
+        meta = load_world(world_key)
+    except Exception:
+        return "tang", "yan"
+    return meta.get("player_faction") or "tang", meta.get("hostile_faction") or "yan"
 
 
 class SimulationEngine:
@@ -332,6 +347,7 @@ class SimulationEngine:
         world_key = self.session.scalar(
             select(World.key).where(World.id == branch.world_id)
         )
+        player_key, hostile_key = _player_and_hostile(world_key)
         if world_key and pack_exists(world_key):
             from .pack_decisions import raise_pack_decisions
             from .rules_engine import State

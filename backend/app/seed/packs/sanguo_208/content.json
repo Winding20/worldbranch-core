@@ -1,0 +1,256 @@
+{
+  "_comment": "赤壁前后（建安十三年下半年）的四块地方、三方势力、五个人、三支兵。全部是数据，没有一行 Python。",
+  "world": {
+    "name": "赤壁",
+    "era": "建安十三年（208）",
+    "description": "曹操南下荆州，刘备走投无路。联吴抗曹，还是别作打算？",
+    "start_date": "0208-07-01",
+    "provenance": "地名与人物取自《三国志》；人口、兵力、府库为量级估算，不是史料数字。",
+    "scenario": {
+      "role": "刘备 · 建安十三年",
+      "goal": "在曹操南下之年，为刘备挣得一块立足之地。",
+      "briefing": "建安十三年秋，曹操轻骑取荆州，刘琮束手。刘备自樊城南走，兵不满万，人心浮动。",
+      "pressures": [
+        "曹军数十万，顺江东下",
+        "荆州人心未附，随时可散",
+        "孙权在柴桑观望，联吴尚无定论"
+      ],
+      "watch": ["江陵是否易手", "与孙权的盟约", "本部兵力"]
+    }
+  },
+  "regions": [
+    {
+      "key": "jiangxia",
+      "name": "江夏",
+      "lat": 30.55,
+      "lon": 114.3,
+      "population": 400000,
+      "faction_key": "liu"
+    },
+    {
+      "key": "jiangling",
+      "name": "江陵",
+      "lat": 30.35,
+      "lon": 112.19,
+      "population": 600000,
+      "faction_key": "cao"
+    },
+    {
+      "key": "chaisang",
+      "name": "柴桑",
+      "lat": 29.7,
+      "lon": 116.0,
+      "population": 500000,
+      "faction_key": "sun"
+    },
+    {
+      "key": "xiangyang",
+      "name": "襄阳",
+      "lat": 32.04,
+      "lon": 112.14,
+      "population": 700000,
+      "faction_key": "cao"
+    }
+  ],
+  "factions": [
+    {
+      "key": "cao",
+      "name": "曹操",
+      "kind": "state",
+      "capital_region_key": "xiangyang",
+      "treasury": 3000000,
+      "legitimacy": 0.7,
+      "military": 200000
+    },
+    {
+      "key": "liu",
+      "name": "刘备",
+      "kind": "state",
+      "capital_region_key": "jiangxia",
+      "treasury": 60000,
+      "legitimacy": 0.62,
+      "military": 18000
+    },
+    {
+      "key": "sun",
+      "name": "孙权",
+      "kind": "state",
+      "capital_region_key": "chaisang",
+      "treasury": 400000,
+      "legitimacy": 0.66,
+      "military": 50000
+    }
+  ],
+  "relations": [
+    { "from_key": "cao", "to_key": "liu", "kind": "hostility", "value": -0.9 },
+    { "from_key": "cao", "to_key": "sun", "kind": "hostility", "value": -0.35 },
+    { "from_key": "sun", "to_key": "liu", "kind": "allegiance", "value": 0.3 }
+  ],
+  "trade_pairs": [["jiangxia", "chaisang", 1200]],
+  "characters": [
+    {
+      "key": "liu_bei",
+      "name": "刘备",
+      "alias": "玄德",
+      "role": "lord",
+      "office": "左将军",
+      "office_rank": 3,
+      "office_kind": "military",
+      "faction_key": "liu",
+      "born": "0161",
+      "died": "0223",
+      "ability": 0.74,
+      "loyalty": 1.0,
+      "ambition": 0.55,
+      "location_region_key": "jiangxia",
+      "bio": "寄寓荆州，兵少而名重。",
+      "source": "《三国志·先主传》"
+    },
+    {
+      "key": "zhuge_liang",
+      "name": "诸葛亮",
+      "alias": "孔明",
+      "role": "advisor",
+      "office": "军师中郎将",
+      "office_rank": 4,
+      "office_kind": "civil",
+      "faction_key": "liu",
+      "born": "0181",
+      "died": "0234",
+      "ability": 0.92,
+      "loyalty": 0.98,
+      "ambition": 0.35,
+      "location_region_key": "jiangxia",
+      "bio": "力主联吴。",
+      "source": "《三国志·诸葛亮传》"
+    },
+    {
+      "key": "guan_yu",
+      "name": "关羽",
+      "alias": "云长",
+      "role": "general",
+      "office": "偏将军",
+      "office_rank": 4,
+      "office_kind": "military",
+      "faction_key": "liu",
+      "born": "0160",
+      "died": "0220",
+      "ability": 0.86,
+      "loyalty": 0.95,
+      "ambition": 0.5,
+      "location_region_key": "jiangxia",
+      "bio": "率水军断后。",
+      "source": "《三国志·关羽传》"
+    },
+    {
+      "key": "sun_quan",
+      "name": "孙权",
+      "alias": "仲谋",
+      "role": "lord",
+      "office": "讨虏将军",
+      "office_rank": 3,
+      "office_kind": "military",
+      "faction_key": "sun",
+      "born": "0182",
+      "died": "0252",
+      "ability": 0.78,
+      "loyalty": 1.0,
+      "ambition": 0.6,
+      "location_region_key": "chaisang",
+      "bio": "坐镇柴桑，战和未决。",
+      "source": "《三国志·吴主传》"
+    },
+    {
+      "key": "zhou_yu",
+      "name": "周瑜",
+      "alias": "公瑾",
+      "role": "general",
+      "office": "中护军",
+      "office_rank": 3,
+      "office_kind": "military",
+      "faction_key": "sun",
+      "born": "0175",
+      "died": "0210",
+      "ability": 0.9,
+      "loyalty": 0.9,
+      "ambition": 0.45,
+      "location_region_key": "chaisang",
+      "bio": "主战最力。",
+      "source": "《三国志·周瑜传》"
+    },
+    {
+      "key": "cao_cao",
+      "name": "曹操",
+      "alias": "孟德",
+      "role": "lord",
+      "office": "丞相",
+      "office_rank": 1,
+      "office_kind": "military",
+      "faction_key": "cao",
+      "born": "0155",
+      "died": "0220",
+      "ability": 0.88,
+      "loyalty": 1.0,
+      "ambition": 0.95,
+      "location_region_key": "xiangyang",
+      "bio": "新得荆州，志在江东。",
+      "source": "《三国志·武帝纪》"
+    }
+  ],
+  "armies": [
+    {
+      "key": "liu_army",
+      "name": "刘备军",
+      "faction_key": "liu",
+      "commander_key": "liu_bei",
+      "region_key": "jiangxia",
+      "troops": 18000,
+      "morale": 0.55,
+      "supply": 0.45
+    },
+    {
+      "key": "wu_army",
+      "name": "江东水军",
+      "faction_key": "sun",
+      "commander_key": "zhou_yu",
+      "region_key": "chaisang",
+      "troops": 50000,
+      "morale": 0.8,
+      "supply": 0.75
+    },
+    {
+      "key": "cao_army",
+      "name": "曹操南征军",
+      "faction_key": "cao",
+      "commander_key": "cao_cao",
+      "region_key": "xiangyang",
+      "troops": 200000,
+      "morale": 0.7,
+      "supply": 0.6
+    }
+  ],
+  "events": [
+    {
+      "key": "cao_takes_jiangling",
+      "date": "0208-09-01",
+      "title": "曹操入江陵",
+      "category": "war",
+      "description": "曹操轻骑追至江陵，得荆州水军与粮械。",
+      "conditions": {},
+      "effects": {},
+      "divergence_note": "江陵未下，曹操的南征便少了一半本钱。",
+      "source": "《三国志·武帝纪》"
+    },
+    {
+      "key": "alliance_formed",
+      "date": "0208-10-15",
+      "title": "孙刘结盟",
+      "category": "diplomacy",
+      "description": "诸葛亮随鲁肃赴柴桑，孙权决意抗曹。",
+      "conditions": { "character_alive": "sun_quan" },
+      "effects": {},
+      "divergence_note": "孙权已不在，江东战和之议无从谈起。",
+      "source": "《三国志·诸葛亮传》"
+    }
+  ]
+}

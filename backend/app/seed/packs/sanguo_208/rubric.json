@@ -1,0 +1,52 @@
+{
+  "_comment": "赤壁这一年的成败：有没有站住脚、荆州的归属、以及还能不能打下去。",
+  "horizon_months": 12,
+  "grades": [
+    [78, "鼎足", "据荆州而联江东，天下三分之势成。"],
+    [55, "存立", "好歹有了立足之地，然处处受人制。"],
+    [30, "寄人篱下", "兵不满万，仰人鼻息。"],
+    [0, "覆没", "曹操席卷江东，无复立足之处。"]
+  ],
+  "metrics": [
+    {
+      "key": "foothold",
+      "label": "立足",
+      "weight": 0.5,
+      "kind": "region_control",
+      "regions": ["jiangxia", "jiangling"],
+      "faction": "liu",
+      "scores": { "held": 100, "autonomous": 60, "lost": 0 },
+      "_why": "有没有一块自己的地盘，是这一年最要紧的事"
+    },
+    {
+      "key": "alliance",
+      "label": "联盟",
+      "weight": 0.3,
+      "kind": "regions_held",
+      "regions": ["chaisang"],
+      "faction": "sun",
+      "_why": "孙权若失柴桑，联盟即无从谈起"
+    },
+    {
+      "key": "army",
+      "label": "兵力",
+      "weight": 0.2,
+      "kind": "faction_field",
+      "faction": "liu",
+      "field": "military",
+      "_why": "还能不能打"
+    }
+  ],
+  "facts": {
+    "jiangling_held": {
+      "kind": "count_regions_held",
+      "regions": ["jiangling"],
+      "faction": "liu"
+    },
+    "cao_in_jiangxia": {
+      "kind": "count_regions_held",
+      "regions": ["jiangxia"],
+      "faction": "cao"
+    }
+  }
+}

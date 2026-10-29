@@ -8,12 +8,43 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..models import Faction, Region, World
+from ..worldpack import PACK_ROOT
 from . import anlushan_755, tang_750
+from .seed_content import has_content, seed_content
 
+#: Python 播种器（老世界）。数据化的世界走 seed_content，不在这里登记。
 WORLD_SEEDERS = {
     "tang_750": tang_750.seed,
     "tang_755": anlushan_755.seed,
 }
+
+
+def _data_worlds() -> list[str]:
+    """带 content.json 的世界包：内容全在数据里，不需要 Python 播种器。"""
+    if not PACK_ROOT.is_dir():
+        return []
+    return sorted(
+        p.name
+        for p in PACK_ROOT.iterdir()
+        if p.is_dir() and not p.name.startswith("_") and has_content(p.name)
+    )
+
+
+def all_world_keys() -> list[str]:
+    """所有可播种的世界：Python 播种器 + 数据化世界包。"""
+    return sorted(set(WORLD_SEEDERS) | set(_data_worlds()))
+
+
+def seed_world(session: Session, key: str) -> World:
+    """按 key 播种任意世界（幂等）。"""
+    exists = session.scalar(select(World).where(World.key == key))
+    if exists is not None:
+        return exists
+    if key in WORLD_SEEDERS:
+        return WORLD_SEEDERS[key](session)
+    if has_content(key):
+        return seed_content(session, key)
+    raise LookupError(f"没有找到世界的播种方式：{key}")
 
 #: 各世界的知识库资料
 KNOWLEDGE_PACKS = {
@@ -25,12 +56,8 @@ KNOWLEDGE_PACKS = {
 def seed_all(session: Session) -> list[World]:
     """幂等地写入所有内置世界。"""
     created: list[World] = []
-    for key, seeder in WORLD_SEEDERS.items():
-        exists = session.scalar(select(World).where(World.key == key))
-        if exists is not None:
-            created.append(exists)
-            continue
-        created.append(seeder(session))
+    for key in all_world_keys():
+        created.append(seed_world(session, key))
     session.flush()
     return created
 

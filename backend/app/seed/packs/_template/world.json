@@ -9,6 +9,8 @@
   "role_brief": "你是示例势力。这句话说明玩家此刻的处境。",
   "theme": "celadon-paper",
   "seed_module": "",
+  "player_faction": "player",
+  "hostile_faction": "enemy",
   "labels": {
     "advance_unit": "月",
     "horizon_label": "两年之后"
