@@ -121,3 +121,18 @@ def test_tang_and_sanguo_use_different_player_factions(db_session):
     """同一套引擎，玩家派系由世界包决定。"""
     assert load_world("tang_755")["player_faction"] == "tang"
     assert load_world("sanguo_208")["player_faction"] == "liu"
+
+def test_worlds_api_exposes_pack_meta(client):
+    """前端靠这个接口拿标题、角色、期限。"""
+    rows = client.get("/api/worlds").get_json()
+    by_key = {r["key"]: r for r in rows}
+
+    assert by_key["tang_755"]["pack"]["title"] == "安史之乱"
+    assert by_key["tang_755"]["pack"]["horizon_months"] == 96
+    assert by_key["sanguo_208"]["pack"]["title"] == "赤壁"
+    assert by_key["sanguo_208"]["pack"]["player_faction"] == "liu"
+
+    detail = client.get("/api/worlds/sanguo_208").get_json()
+    assert detail["pack"]["role"] == "刘备"
+    assert detail["pack"]["horizon_months"] == 12
+    assert len(detail["regions"]) == 4
