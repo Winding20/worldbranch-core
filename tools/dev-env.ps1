@@ -1,9 +1,10 @@
 ﻿# WorldBranch 开发环境引导脚本
-# 用法:  . B:\新项目开发\tools\dev-env.ps1
+# 用法:  . .\tools\dev-env.ps1
 
 $ErrorActionPreference = "Stop"
 
-$Workspace = "B:\新项目开发"
+# 工作区从脚本位置推导（脚本在 <工作区>/tools/ 下），换目录/换机器都不用改
+$Workspace = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $Venv = Join-Path $Workspace ".venv"
 $Shim = Join-Path $Workspace "tools\pyshim"
 $TmpDir = Join-Path $Workspace ".tmp"
