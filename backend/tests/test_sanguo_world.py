@@ -139,3 +139,20 @@ def test_worlds_api_exposes_pack_meta(client):
     assert detail["pack"]["role"] == "刘备"
     assert detail["pack"]["horizon_months"] == 12
     assert len(detail["regions"]) == 4
+
+def test_sanguo_ending_api_uses_its_own_rubric(client, db_session):
+    """接口层也要按世界包评分，不能落到唐史的标准上。"""
+    world = get_world_by_key(db_session, "sanguo_208")
+    branch = create_branch(db_session, world, name="结局接口", seed=13)
+    db_session.commit()
+
+    rows = client.get("/api/worlds/sanguo_208/branches").get_json()
+    branch_id = rows[0]["id"] if rows else branch.id
+
+    response = client.post(f"/api/branches/{branch_id}/advance", json={"months": 12})
+    assert response.status_code == 200, response.get_json()
+
+    ending = client.get(f"/api/branches/{branch_id}/ending")
+    payload = ending.get_json()
+    assert ending.status_code == 200
+    assert set(payload["scores"]) == {"立足", "联盟", "兵力"}

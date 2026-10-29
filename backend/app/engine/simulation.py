@@ -198,14 +198,20 @@ class SimulationEngine:
                 select(TradeLink).where(TradeLink.world_id == branch.world_id)
             )
         )
-        # 藩镇一旦敌视，河北粮道即被掐断——这是"拒不付饷"的真实代价
+        # 藩镇一旦敌视，其根本之地的粮道即被掐断——这是"拒不付饷"的真实代价。
+        # 哪个派系、断哪块地方，全由数据决定（关系表 + 派系都城）。
         relation_now = self.session.scalar(
             select(RelationState).where(
                 RelationState.branch_id == branch.id,
-                RelationState.from_key == "fanzhen",
+                RelationState.kind == "allegiance",
             )
         )
-        self._blockade = relation_now is not None and relation_now.value < 0
+        self._blockade_faction = (
+            relation_now.from_key
+            if relation_now is not None and relation_now.value < 0
+            else None
+        )
+        self._blockade = self._blockade_faction is not None
 
         # 史实事件必须逐月检查：一次推进 12 个月时，若只在结束时判定，
         # 整年的历史事件都会因为"过期"而被跳过。
@@ -749,11 +755,21 @@ class SimulationEngine:
         by_key = {r.region_key: r for r in regions}
         blockaded = getattr(self, "_blockade", False)
         if blockaded:
-            links = [
-                link
-                for link in links
-                if "hebei" not in (link.from_key, link.to_key)
-            ]
+            # 断掉敌对派系都城相关的粮道
+            faction_key = getattr(self, "_blockade_faction", None)
+            capital = self.session.scalar(
+                select(Faction.capital_region_key).where(
+                    Faction.world_id == branch.world_id,
+                    Faction.key == faction_key,
+                )
+            )
+            blocked_regions = {capital} if capital else set()
+            if blocked_regions:
+                links = [
+                    link
+                    for link in links
+                    if not ({link.from_key, link.to_key} & blocked_regions)
+                ]
         incoming: dict[str, list[TradeLink]] = {}
         for link in links:
             incoming.setdefault(link.to_key, []).append(link)

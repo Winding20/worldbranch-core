@@ -1,4 +1,4 @@
-﻿"""分支（时间线）相关接口：推进模拟、读取状态与事件、派生分支。"""
+"""分支（时间线）相关接口：推进模拟、读取状态与事件、派生分支。"""
 
 from __future__ import annotations
 
@@ -8,7 +8,8 @@ from sqlalchemy import select
 from ..app_factory import get_db
 from ..engine import SimulationEngine
 from ..engine.ending import evaluate_ending
-from ..engine.end_tang import evaluate_tang_ending
+from ..engine.ending_rubric import evaluate_rubric
+from ..worldpack import PackError, load_rubric
 from ..engine.history import history_status
 from ..engine.loyalty import loyalty_overview
 from ..engine.military import all_powers, candidates_for_command, side_strength
@@ -148,10 +149,16 @@ def ending_route(branch_id: int):
     with get_db().session() as session:
         branch = get_branch(session, branch_id)
         world = session.get(World, branch.world_id)
-        # 唐朝切片有自己的成败标准（两京、乱平、河北归属），不用通用五年评分
-        if world is not None and world.key == "tang_755":
-            result = evaluate_tang_ending(session, branch)
-        else:
+        # 谁有 rubric.json 就用谁的标准；没有包的老世界才回退到内置评分。
+        result = None
+        if world is not None:
+            try:
+                rubric = load_rubric(world.key)
+            except PackError:
+                rubric = None
+            if rubric is not None:
+                result = evaluate_rubric(session, branch, rubric)
+        if result is None:
             result = evaluate_ending(session, branch)
         if result is None:
             return ("", 204)
